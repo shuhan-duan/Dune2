@@ -128,7 +128,7 @@ data Environnement = Environnement{
                                             prim1 x a = (coordVide3 (ucoord x) c) && a
                                             prim2 y b = (coordVide3 (bcoord y) c) && b
 
-    -- |invariant pour l'environnement 
+    -- |invariant complete pour l'environnement 
     prop_inv_env::Environnement->Bool
         prop_inv_env =  prop1_env &&  prop_caseEauVide &&  prop_caseHerbe && prop_caseRessourc
 
