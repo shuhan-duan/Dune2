@@ -1,84 +1,83 @@
 module Unite where
     
-    import Carte
-    import Data.List as L
-
-    newtype UniteId = UniteId Int
-
-    data Tank = Tank Int Int
-                |EmptyTank Int
-                |FullTank Int
-                deriving Show
+import Carte as C
+import Data.List as L
+import Common
     
-    prop_cuveInvariant :: Maybe Tank -> Bool
-        prop_cuveInvariant (Just (EmptyTank cap)) = cap >= 0
-        prop_cuveInvariant (Just (FullTank cap)) = cap >= 0
-        prop_cuveInvariant (Just (Tank cap cour)) = cap > 0 && cour > 0 && cour <= cap
+prop_cuveInvariant :: Maybe Tank -> Bool
+prop_cuveInvariant (Just (EmptyTank cap)) = cap >= 0
+prop_cuveInvariant (Just (FullTank cap)) = cap >= 0
+prop_cuveInvariant (Just (Tank cap cour)) = cap > 0 && cour > 0 && cour <= cap
 
-    initCuve :: Integer -> Maybe Tank
-        initCuve c 
-        | c > 0 = Just $ EmptyTank c
-        | otherwise = Nothing 
-    quantite ::Tank -> Integer
-        quantite (Cuve _ q) = q
-        quantite (CuveVide c) = 0
-        quantite (CuvePleine c) = c
+initCuve :: Int -> Maybe Tank
+initCuve cap 
+    | cap > 0 = Just $ EmptyTank cap
+    | otherwise = Nothing 
 
-    capacite ::Tank -> Integer
-        capacite (Cuve c _) = c
-        capacite (CuveVide c) = c
-        capacite (CuvePleine c) = c
+quantite ::Tank -> Int
+quantite (Tank _ q) = q
+quantite (EmptyTank cap) = 0
+quantite (FullTank cap) = cap
 
-    changeCuve :: Tank -> Integer -> Tank
-        changeCuve cu q
-            | q == 0 = EmptyTank (capacite cu) 
-            | q == capacite cu = FullTank (capacite cu)
-            | otherwise  = Tank (capacite cu) q
+capacite ::Tank -> Int
+capacite (Tank c _) = c
+capacite (EmptyTank c) = c
+capacite (FullTank c) = c
 
-    -- v: volume
-    remplirCuve ::Tank -> Integer -> Maybe Tank
-        remplirCuve _ v | v <= 0 = Nothing 
-        remplirCuve cu v = 
-            let q = v + quantite cu in 
-                if q <= capacite cu
-                    then Just $ changeCuve cu q
+changeCuve :: Tank -> Int -> Tank
+changeCuve cu q
+        | q == 0 = EmptyTank (capacite cu) 
+        | q == capacite cu = FullTank (capacite cu)
+        | otherwise  = Tank (capacite cu) q
+
+-- v: volume
+remplirCuve ::Tank -> Int -> Maybe Tank
+remplirCuve _ v | v <= 0 = Nothing 
+remplirCuve cu v = 
+    let q = v + quantite cu in 
+        if q <= capacite cu then 
+        Just $ changeCuve cu q
                     else Nothing
 
 
 
+-- Returns the cost (in credits) of a given unite type.
+uniteTypeCost :: UniteType -> Int
+uniteTypeCost Collecteur = 10 
+uniteTypeCost Combatnt = 10 
 
-    data UniteType = Collecteur Tank 
-                    | Combatnt
-    data Ordre = CR 
-                |D 
-                |P
-                |A 
-                deriving Eq
-
-    
-    data Unite = Unite { uid :: UniteId
-                    , utype :: UniteType
-                    , uproducteur :: BatId
-                    , ucoord :: Coord
-                    , udirection :: Int  -- angle en degrés, modulo 360
-                    , upointsVie :: Int
-                    ,uTache :: [Ordre]
-                    ,ubut :: Ordre
-                    }
-
+-- Returns the product time of a given unite type.
+uniteTypeTempsProd :: UniteType -> Int
+uniteTypeTempsProd Collecteur = 20 
+uniteTypeTempsProd Combatnt = 15
 
 
 prop1_inv_Unite:: Unite -> Bool
-prop1_inv_Unite (Unite _ _ _ _ _ _ _ t b) = L.elem t b
+prop1_inv_Unite u = L.elem (ubut u) (uTache u)
 
 modifCoordEO::Unite->Unite
-modifCoord u= let c= Coord (((cx (ucoord u)+1),cy (ucoord u))) in u{ucoord=c} 
+modifCoordEO u = 
+    let x= (cx (ucoord u))+1  
+        y=(cy (ucoord u))
+    in u{ucoord=C.creeCoord x y} 
 
-modifCoordEO::Unite->Unite
-modifCoord u= let c= Coord ((cx (ucoord u),(cy (ucoord u))+1)) in u{ucoord=c} 
+modifCoordNS::Unite->Unite
+modifCoordNS u= 
+    let x= (cx (ucoord u))  
+        y=(cy (ucoord u)) +1 
+    in u{ucoord=C.creeCoord x y} 
 
-deplacer:: Coord->Unite->Unite
-deplacer c u = let x= abs ((cx c) - (cx (cx (ucoord u)))) ,y= abs ((cy c) - (cy (cy (ucoord u)))) in
-                                        case (x > y) of
-                                            True -> modifCoordEO u
-                                            otherwase -> modifCoordNS u 
+deplacer:: Coord -> Unite -> Unite
+deplacer c u =
+  let x = abs (cx c - cx (ucoord u))
+      y = abs (cy c - cy (ucoord u))
+  in case x > y of
+       True -> modifCoordEO u
+       False -> modifCoordNS u
+
+-- | Fonction pour modifier le but d'une Unite
+modif_But :: Ordre->Unite->Unite
+modif_But o u = u{ubut=o}
+ 
+collecterRessource::Coord->Unite->Unite
+collecterRessource c u =   

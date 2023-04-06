@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Carte where
 
 import qualified Data.Map.Strict as M
@@ -31,6 +32,8 @@ data Terrain = Herbe | Ressource Int | Eau
 prop_Terrain :: Terrain -> Bool
 prop_Terrain (Ressource n) = n > 0
 prop_Terrain _ = True
+
+
 
 
 newtype Carte = Carte {carte :: M.Map Coord Terrain} deriving (Show, Eq)
@@ -81,3 +84,14 @@ prop_preCollecteCase (C x y) r (Carte m) =
   case M.lookup (C x y) m of
     Just (Ressource n) -> n >= r
     _ -> False
+
+
+getTerrain :: Carte -> Coord -> Maybe Terrain
+getTerrain (Carte c) coord = M.lookup coord c
+
+-- verifier si la case est constructible
+isConstructible :: Coord -> Carte -> Bool
+isConstructible c carte = case getTerrain carte c of
+                           Just Herbe -> True
+                           Just (Ressource 0) -> True
+                           _ -> False

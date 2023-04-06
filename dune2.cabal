@@ -25,9 +25,13 @@ source-repository head
 
 library
   exposed-modules:
+      Batiment
       Carte
+      Common
       Environment
+      Joueur
       Lib
+      Unite
   other-modules:
       Paths_dune2
   hs-source-dirs:
