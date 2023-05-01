@@ -93,3 +93,14 @@ terminerProduction j  bat =
             else terminerProduction j (bat {btempsProd = Just (t-1, utype)})
         Nothing -> (j, bat)
     _ -> (j, bat)
+
+--  détruit un bâtiment et supprime ses coordonnées de la carte
+-- | Detruit un batiment et le retire de la carte.
+detruireBatiment :: Environnement -> Batiment -> Environnement
+detruireBatiment env bat =
+  env { carte = Carte $ M.delete (bcoord bat) (carte env)
+      , joueurs = M.adjust supprimerBatimentJoueur (bproprio bat) (joueurs env)
+      }
+  where
+    supprimerBatimentJoueur j = j { jbatiments = M.delete (bid bat) (jbatiments j) }
+
