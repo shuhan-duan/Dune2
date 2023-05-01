@@ -40,6 +40,16 @@
   (major1) == 2 && (major2) <  9 || \
   (major1) == 2 && (major2) == 9 && (minor) <= 7)
 #endif /* MIN_VERSION_hspec */
+/* package linear-1.21.10 */
+#ifndef VERSION_linear
+#define VERSION_linear "1.21.10"
+#endif /* VERSION_linear */
+#ifndef MIN_VERSION_linear
+#define MIN_VERSION_linear(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  21 || \
+  (major1) == 1 && (major2) == 21 && (minor) <= 10)
+#endif /* MIN_VERSION_linear */
 /* package random-1.2.1.1 */
 #ifndef VERSION_random
 #define VERSION_random "1.2.1.1"
@@ -50,6 +60,16 @@
   (major1) == 1 && (major2) <  2 || \
   (major1) == 1 && (major2) == 2 && (minor) <= 1)
 #endif /* MIN_VERSION_random */
+/* package sdl2-2.5.4.0 */
+#ifndef VERSION_sdl2
+#define VERSION_sdl2 "2.5.4.0"
+#endif /* VERSION_sdl2 */
+#ifndef MIN_VERSION_sdl2
+#define MIN_VERSION_sdl2(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  5 || \
+  (major1) == 2 && (major2) == 5 && (minor) <= 4)
+#endif /* MIN_VERSION_sdl2 */
 /* package text-1.2.5.0 */
 #ifndef VERSION_text
 #define VERSION_text "1.2.5.0"
@@ -143,10 +163,10 @@
 #endif /* MIN_TOOL_VERSION_runghc */
 
 #ifndef CURRENT_PACKAGE_KEY
-#define CURRENT_PACKAGE_KEY "dune2-0.1.0.0-IqvUI35ZeXmFXHZMk3cG2u"
+#define CURRENT_PACKAGE_KEY "dune2-0.1.0.0-Fa4DMvKbFREE4Yo6RFFJ3K"
 #endif /* CURRENT_packageKey */
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "dune2-0.1.0.0-IqvUI35ZeXmFXHZMk3cG2u"
+#define CURRENT_COMPONENT_ID "dune2-0.1.0.0-Fa4DMvKbFREE4Yo6RFFJ3K"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

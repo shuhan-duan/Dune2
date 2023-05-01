@@ -24,6 +24,8 @@ dependencies:
 - text
 - containers
 - random
+- linear
+- sdl2
 - hspec
 
 ghc-options:
