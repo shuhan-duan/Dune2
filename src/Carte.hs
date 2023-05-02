@@ -95,3 +95,12 @@ isConstructible c carte = case getTerrain carte c of
                            Just Herbe -> True
                            Just (Ressource 0) -> True
                            _ -> False
+
+isValidCoord :: Carte -> Coord -> Bool
+isValidCoord (Carte m) coord = M.member coord m
+
+isEau :: Maybe Terrain -> Bool
+isEau (Just Eau) = True
+isEau _ = False
+
+

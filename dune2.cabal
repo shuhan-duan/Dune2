@@ -29,6 +29,7 @@ library
       Carte
       Common
       Environment
+      Environnement
       Joueur
       Keyboard
       Lib

@@ -7,13 +7,16 @@ import Common
 
 
 
- -- |Rechercher un element dans une liste
-etsDans::JoueurId->[Joueur]->Bool
-etsDans a l=foldl (\acc elem-> ((jid elem)== a) || acc) False l
+-- |Rechercher un element dans une liste
+etsDans :: JoueurId -> [Joueur] -> Bool
+etsDans a l = any (\elem -> jid elem == a) l
 
--- |verifier qu'un batiment appartient a un joueur de environnement
-prop_bat_appartient::Environnement->Bool
-prop_bat_appartient (Environnement j _ _ b)= M.foldr (\elem acc-> etsDans (bproprio elem)  j || acc) False b
+-- | Vérifier que tous les bâtiments dans Environnement appartiennent à un joueur dans la liste joueurs
+prop_bat_appartient :: Environnement -> Bool
+prop_bat_appartient (Environnement joueurs _ _ batiments) = 
+    all (\bat -> M.member (bproprio bat) joueurMap) (M.elems batiments)
+  where
+    joueurMap = M.fromList $ zip (map jid joueurs) joueurs
 
 -- |verifier qu'une uninte appartient a un joueur de environnement
 prop_unit_appartient::Environnement->Bool
