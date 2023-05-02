@@ -41,15 +41,15 @@ data Tank = Tank Int Int
             |EmptyTank Int
             |FullTank Int
                 deriving Show
-
+data Entite = Batiment 
+            |Unite
 
 data UniteType = Collecteur Tank 
-                    | Combatnt   
+                | Combatant   
                     
 data Ordre = Collecter Coord
             | Deplacer Coord
-            | AttaquerU UniteId
-            |AttaquerB BatId
+            |Attaquer Entite
             | Patrouiller Coord Coord
 
                 
