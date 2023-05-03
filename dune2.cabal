@@ -28,7 +28,6 @@ library
       Batiment
       Carte
       Common
-      Environment
       Environnement
       Joueur
       Keyboard

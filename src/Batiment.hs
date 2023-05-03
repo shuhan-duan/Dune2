@@ -1,4 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
+{-# OPTIONS_GHC -Wno-compat-unqualified-imports #-}
 module Batiment where
 
 import Common
@@ -30,25 +32,24 @@ batimentTypeEnergie Usine = -10 -- consumes energy
 batimentTypeEnergie Centrale = 20 -- produces energy
 
 
--- Construit un bâtiment sur une case donn ́ee, si possible.
-construireBatiment :: Joueur -> Environnement -> BatimentType -> Coord -> Maybe (Joueur, Batiment)
-construireBatiment j env bt c
-    | bTypeCost > credits = Nothing
-    | not $ isConstructible c (ecarte env) = Nothing
-    | otherwise = Just (newJoueur, Batiment bid bt (jid j) c bEnergie bPointsVie Nothing)
-  where
-    credits = jcredits j
-    bid = getNextBatimentId j
-    bTypeCost = batimentTypeCost bt
-    bPointsVie = batimentTypePointsVie bt
-    bEnergie = batimentTypeEnergie bt
-    newJoueur = j { jcredits = credits - bTypeCost
-                  , jbatiments = insert bid (Batiment bid bt (jid j) c bEnergie bPointsVie Nothing) (jbatiments j)
-                  , jenergieProduit = jenergieProduit j + bEnergie
-                  , jenergieConsume = jenergieConsume j + (if bEnergie < 0 then -bEnergie else 0)
-                  }
-
-                        
+construireBatiment :: Joueur -> Environnement -> BatimentType -> Coord -> Environnement
+construireBatiment joueur env btype coord
+  | not (isValidCoord (ecarte env) coord) || not (isConstructible coord (ecarte env)) = env
+  | jcredits joueur < batimentTypeCost btype = env
+  | otherwise = let
+             newBatId = BatId (M.size (jbatiments joueur) + 1)
+             newBatiment = Batiment { bid = newBatId
+                                    , btype = btype
+                                    , bproprio = jid joueur
+                                    , bcoord = coord
+                                    , benergie = batimentTypeEnergie btype
+                                    , bpointsVie = batimentTypePointsVie btype
+                                    , btempsProd = Nothing
+                                    }
+             newJoueur = joueur { jcredits = jcredits joueur - batimentTypeCost btype}
+             env' = updateJoueur newJoueur env
+             env'' = updateBatiment newBatiment env'
+             in env''
 
 -- Modifie les points de vie d'un bâtiment en ajoutant la valeur de deltaPoints.
 -- Si le résultat est inférieur à 0, les points de vie sont fixés à 0.    
@@ -60,47 +61,58 @@ joueurProprioBatiment :: Environnement -> Batiment -> Maybe Joueur
 joueurProprioBatiment env bat =
   let myjid = bproprio bat
       js = joueurs env
-  in find (\j -> myjid == jid j) js
+  in Data.List.find (\j -> myjid == jid j) js
 
+
+updateBatiment :: Batiment -> Environnement -> Environnement
+updateBatiment updatedBatiment env =
+  let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
+      updatedBatiments = M.insert (bid updatedBatiment) updatedBatiment (jbatiments currentPlayer)
+      updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
+      updatedGlobalBatiments = M.insert (bid updatedBatiment) updatedBatiment (batiments env)
+  in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments })
 
 -- produce unite si le batiment est "Usine"
-produireUnite :: Environnement -> UniteType -> Batiment -> (Environnement, Batiment)
-produireUnite env utype bat = 
-    case btype bat of 
+produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
+produireUnite env utype bat =
+    case btype bat of
          Usine -> case btempsProd bat of
-            Just _ -> (env, bat)  -- L'usine est déjà en train de produire une unité
-            Nothing ->  if jcredits j < uniteTypeCost utype
-                            then (env, bat) -- Le joueur n'a pas suffisamment de points pour payer les coûts de production
-                            else let newBat = bat { btempsProd = Just (uniteTypeTempsProd utype, utype)}
-                                     newJoueur = j { jcredits = jcredits j - uniteTypeCost utype }
-                                     env' = env { joueurs = insert (jid j) newJoueur (joueurs env) }
-                                in (env', newBat)
+            Just _ -> env  -- L'usine est déjà en train de produire une unité
+            Nothing ->  case j of
+                            Nothing -> env -- Le joueur propriétaire du bâtiment n'a pas été trouvé dans l'environnement
+                            Just joueur ->
+                                if jcredits joueur < uniteTypeCost utype
+                                    then env -- Le joueur n'a pas suffisamment de points pour payer les coûts de production
+                                    else let newBat = bat { btempsProd = Just (uniteTypeTempsProd utype, utype)}
+                                             newJoueur = joueur { jcredits = jcredits joueur - uniteTypeCost utype }
+                                             env' = updateJoueur newJoueur env
+                                             env'' = updateBatiment newBat env'
+                                        in env''
             where j = joueurProprioBatiment env bat
-         _ -> (env, bat) -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité 
+         _ -> env -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité
+
 
 -- termine la production de unite 
-terminerProduction :: Joueur -> Batiment -> (Joueur, Batiment)
-terminerProduction j  bat =
+terminerProduction :: Joueur -> Environnement -> Batiment -> Environnement
+terminerProduction j env bat =
   case btype bat of
     Usine ->
       case btempsProd bat of
         Just (t, utype) ->
-          if t == 1 
+          if t == 1
             then
               let newUnit = creerUnite utype j (bcoord bat)
-                  newJoueur = j {junites = insert (uid newUnit) newUnit (junites j)} -- mettre a jour le joueur
-              in (newJoueur, bat {btempsProd = Nothing, bproprio = jid newJoueur})
-            else terminerProduction j (bat {btempsProd = Just (t-1, utype)})
-        Nothing -> (j, bat)
-    _ -> (j, bat)
+                  newBatiment = bat {btempsProd = Nothing}
+                  env' = updateUnite newUnit env
+                  env'' = updateBatiment newBatiment env'
+              in env''
+            else 
+              let newBatiment = bat {btempsProd = Just (t-1, utype)}
+                  env' = updateBatiment newBatiment env
+              in terminerProduction j env' newBatiment
+        Nothing -> env
+    _ -> env
+
 
 --  détruit un bâtiment et supprime ses coordonnées de la carte
--- | Detruit un batiment et le retire de la carte.
-detruireBatiment :: Environnement -> Batiment -> Environnement
-detruireBatiment env bat =
-  env { carte = Carte $ M.delete (bcoord bat) (carte env)
-      , joueurs = M.adjust supprimerBatimentJoueur (bproprio bat) (joueurs env)
-      }
-  where
-    supprimerBatimentJoueur j = j { jbatiments = M.delete (bid bat) (jbatiments j) }
-
+--detruireBatiment :: Environnement -> Batiment -> Environnement

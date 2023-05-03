@@ -2,6 +2,7 @@
 import Common
 import Carte
 import qualified Data.Map as M
+import Joueur
 
 prop_Entites_correctes :: Environnement -> Bool
 prop_Entites_correctes env =

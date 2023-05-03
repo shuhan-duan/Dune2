@@ -4,12 +4,11 @@ import Data.Map
 import Carte
 
 
-newtype JoueurId = JoueurId Int deriving (Eq)
+newtype JoueurId = JoueurId Int deriving (Show, Eq ,Ord)
 
-newtype UniteId = UniteId Int deriving (Eq)
+newtype UniteId = UniteId Int deriving (Show, Eq ,Ord)
 
-newtype BatId = BatId Int deriving (Eq)
-
+newtype BatId = BatId Int deriving (Show, Eq ,Ord)
 
 -- get BatId from newtype BatId
 unBatId :: BatId -> Int
@@ -25,12 +24,10 @@ data Joueur = Joueur { jid :: JoueurId
                         , junites :: Map UniteId Unite
                         , jenergieConsume :: Int
                         , jenergieProduit :: Int
-                        }deriving (Eq)
+                        }deriving (Show, Eq)
 
-joueurExiste :: JoueurId -> Environnement -> Bool
-joueurExiste joueurId env = joueurId `elem` fmap jid (joueurs env)
 
-data BatimentType = QuartierGeneral | Raffinerie | Usine | Centrale  deriving (Eq)
+data BatimentType = QuartierGeneral | Raffinerie | Usine | Centrale  deriving (Show, Eq)
 
 data Batiment = Batiment { bid :: BatId
                             , btype :: BatimentType
@@ -39,7 +36,7 @@ data Batiment = Batiment { bid :: BatId
                             , benergie :: Int --La consommation ou la production d'énergie
                             , bpointsVie :: Int
                             , btempsProd :: Maybe (Int, UniteType) -- ( temps restant,unité produite)
-                            }deriving (Eq)
+                            }deriving (Show, Eq)
 
 data Tank = Tank Int Int
             |EmptyTank Int
@@ -48,26 +45,34 @@ data Tank = Tank Int Int
 
 type Entite = Either Batiment Unite
 
-data UniteType = Collecteur Tank
-                | Combatant deriving (Eq)
+type EntiteId = Either BatId UniteId
 
 data Ordre = Collecter Coord
             | Deplacer Coord
-            |Attaquer Entite
-            | Patrouiller Coord Coord deriving (Eq)
+            | Attaquer Entite
+            | Patrouiller Coord Coord deriving (Show, Eq)
 
 
-data Unite = Unite { uid :: UniteId
-                    , utype :: UniteType
-                    , uproprio ::JoueurId
-                    , uproducteur :: BatId
-                    , ucoord :: Coord
-                    -- , udirection :: Int  -- angle en degrés, modulo 360
-                    , upointsVie :: Int
-                    , uTache :: [Ordre]
-                    , ubut :: Ordre
-                    }deriving (Eq)
+data Direction = Nord | Est | Sud | Ouest
+  deriving (Show, Eq, Enum)
 
+data But = Deplacement Coord | Attaque EntiteId | Collecte Coord | Patrouille Coord Coord
+  deriving (Show, Eq)
+
+data UniteType = Collecteur Tank
+                | Combatant deriving (Show, Eq)
+
+data Unite = Unite {
+    uid :: UniteId,
+    utype :: UniteType,
+    uproprio :: JoueurId,
+    ucoord :: Coord,
+    udirection :: Direction,
+    upointsVie :: Int,
+    ucuve :: Maybe Tank,
+    uordres :: [Ordre],
+    ubut :: But
+} deriving (Show, Eq)
 
 data Environnement = Environnement{
                 joueurs :: [Joueur],
