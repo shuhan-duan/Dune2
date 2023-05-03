@@ -59,15 +59,17 @@ uniteTypeTempsProd :: UniteType -> Int
 uniteTypeTempsProd (Collecteur _)  = 20 
 uniteTypeTempsProd Combatant = 15
 
+-- Returns the point of life  of a given unite type.
 uniteTypePointsVie :: UniteType -> Int
 uniteTypePointsVie (Collecteur _) = 100
 uniteTypePointsVie Combatant = 50
 
+-- Returns the capacity of the cuve of a given unite type.
 uniteTypeCapaciteCuve :: UniteType -> Int
 uniteTypeCapaciteCuve (Collecteur tank) = capacite tank
 uniteTypeCapaciteCuve Combatant = 0 -- Combatants do not have tanks
 
-
+-- create new unite 
 creerUnite :: UniteType -> Joueur -> Coord -> Unite
 creerUnite utype joueur coord =
   Unite {
@@ -82,6 +84,7 @@ creerUnite utype joueur coord =
     ubut = Deplacement coord
   }
 
+-- update the environment with new unite
 updateUnite :: Unite -> Environnement -> Environnement
 updateUnite updatedUnite env =
   let currentPlayer = head $ filter (\j -> jid j == uproprio updatedUnite) (joueurs env)

@@ -31,7 +31,7 @@ batimentTypeEnergie Raffinerie = -5 -- consumes energy
 batimentTypeEnergie Usine = -10 -- consumes energy
 batimentTypeEnergie Centrale = 20 -- produces energy
 
-
+-- | Builds a new building at the given coordinates if possible, updates the player's credits, and returns the updated environment
 construireBatiment :: Joueur -> Environnement -> BatimentType -> Coord -> Environnement
 construireBatiment joueur env btype coord
   | not (isValidCoord (ecarte env) coord) || not (isConstructible coord (ecarte env)) = env
@@ -63,7 +63,7 @@ joueurProprioBatiment env bat =
       js = joueurs env
   in Data.List.find (\j -> myjid == jid j) js
 
-
+-- update the environment with new batiment
 updateBatiment :: Batiment -> Environnement -> Environnement
 updateBatiment updatedBatiment env =
   let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
@@ -114,5 +114,15 @@ terminerProduction j env bat =
     _ -> env
 
 
---  détruit un bâtiment et supprime ses coordonnées de la carte
---detruireBatiment :: Environnement -> Batiment -> Environnement
+-- détruit un bâtiment et supprime ses coordonnées de la carte
+detruireBatiment :: Environnement -> Batiment -> Environnement
+detruireBatiment env bat = 
+    let updatedBatiments = M.delete (bid bat) (batiments env)
+        updatedCarte = setCaseVide (bcoord bat) (ecarte env)
+        currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio bat) (joueurs env)
+        updatedPlayerBatiments = M.delete (bid bat) (jbatiments currentPlayer)
+        updatedPlayer = currentPlayer { jbatiments = updatedPlayerBatiments }
+        updatedEnv = env { batiments = updatedBatiments, ecarte = updatedCarte }
+    in updateJoueur updatedPlayer updatedEnv
+
+

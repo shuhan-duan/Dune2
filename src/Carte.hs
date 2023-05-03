@@ -14,31 +14,31 @@ instance Ord Coord where
         | x1 > x2 = GT
         | otherwise = EQ
 
-
+-- Creates a Coord data type with x and y coordinates
 creeCoord :: Int -> Int -> Coord
 creeCoord x y = C {cx = x, cy = y}
 
+-- Property to check if two coordinates are unique
 prop_Coord_unique :: Coord -> Coord -> Bool
 prop_Coord_unique c1 c2 = c1 /= c2 
 
+-- Property to check if a coordinate has positive x and y values
 prop_Coord_positive :: Coord -> Bool
 prop_Coord_positive c = cx c >= 0 && cy c >= 0
+
 
 
 data Terrain = Herbe | Ressource Int | Eau
   deriving (Show, Eq)
 
--- Invariant pour le type Terrain
+-- Property to check if a Terrain value is valid
 prop_Terrain :: Terrain -> Bool
 prop_Terrain (Ressource n) = n > 0
 prop_Terrain _ = True
 
-
-
-
 newtype Carte = Carte {carte :: M.Map Coord Terrain} deriving (Show, Eq)
 
--- Invariant pour le type Carte
+--- Property to check if a Carte data type is valid
 prop_Carte :: Carte -> Bool 
 prop_Carte (Carte m) = all coordValide (M.keys m)
                         && all terrainCorrect (M.elems m)
@@ -54,7 +54,7 @@ prop_Carte (Carte m) = all coordValide (M.keys m)
         | cy c1 == cy c2 = all (\x -> M.member (C x (cy c1)) m) [min (cx c1) (cx c2) .. max (cx c1) (cx c2)]
         | otherwise = error "segments non alignés"
 
--- Fonction de collecte de ressources
+-- Collects resources from a given Coord key in the Carte
 collecteCase :: Coord -> Int -> Carte -> (Int, Carte)
 collecteCase coord r (Carte m) =
   case M.lookup coord m of
@@ -66,7 +66,7 @@ collecteCase coord r (Carte m) =
     Nothing -> (0, Carte m) -- Case inexistante sur la carte
 
 
---Postconditon de collecteCase
+-- Postcondition for the collecteCase function
 prop_postCollecteCase :: Coord -> Int -> Carte -> Bool
 prop_postCollecteCase coord r c@(Carte m) =
   let (v, Carte m') = collecteCase coord r c
@@ -78,29 +78,34 @@ prop_postCollecteCase coord r c@(Carte m) =
                                          _ -> False)
        _ -> v == 0 && m' == m
 
---Precondition de collecteCase
+--Precondition for the collecteCase function
 prop_preCollecteCase :: Coord -> Int -> Carte -> Bool
 prop_preCollecteCase (C x y) r (Carte m) =
   case M.lookup (C x y) m of
     Just (Ressource n) -> n >= r
     _ -> False
 
-
+-- Retrieves the terrain type at the specified coordinate from a given map
 getTerrain :: Carte -> Coord -> Maybe Terrain
 getTerrain (Carte c) coord = M.lookup coord c
 
--- verifier si la case est constructible
+-- Checks if a given coordinate on a map is constructible 
 isConstructible :: Coord -> Carte -> Bool
 isConstructible c carte = case getTerrain carte c of
                            Just Herbe -> True
                            Just (Ressource 0) -> True
                            _ -> False
 
+-- Checks if a given coordinate is a valid coordinate on a map
 isValidCoord :: Carte -> Coord -> Bool
 isValidCoord (Carte m) coord = M.member coord m
 
+-- Determines if a given terrain type is water
 isEau :: Maybe Terrain -> Bool
 isEau (Just Eau) = True
 isEau _ = False
 
+-- Sets the terrain type at the specified coordinate to grass (i.e., an empty space)
+setCaseVide :: Coord -> Carte -> Carte
+setCaseVide coord (Carte c) = Carte $ M.insert coord Herbe c
 
