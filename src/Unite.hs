@@ -92,3 +92,30 @@ updateUnite updatedUnite env =
       updatedPlayer = currentPlayer { junites = updatedUnites }
       updatedGlobalUnites = M.insert (uid updatedUnite) updatedUnite (unites env)
   in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
+
+-- Defirnir la porter d'attaque
+porter::Coord->Coord->Bool
+porter (C x y) (C a b) = (x-a)**2 + (y-b)**2 <= 4
+
+-- Attaquer une entite 
+attaque::Unite->Entite->(Entite,Unite)
+attaque u e = case e of
+              Batiment -> if (bpointsVie e) < 2 then 
+                let batiment= (e {bpointsVie=0})
+                    unite =(u {upointsVie = (upointsVie u) + (bpointsVie e)})
+                in (unite,batiment)
+                else let batiment= (e {bpointsVie=(bpointsVie e)-2})
+                         unite =(u {upointsVie = (upointsVie u) + 2})
+                     in (unite,batiment)
+              Unite-> if (upointsVie e) < 2 then 
+                let uniteAttaquer= (e {upointsVie=0})
+                    uniteCharger =(u {upointsVie = (upointsVie u) + (upointsVie e)})
+                in (uniteCharger,uniteAttaquer)
+                else let uniteAttaquer= (e {upointsVie=(upointsVie e)-2})
+                         uniteCharger =(u {upointsVie = (upointsVie u) + 2})
+                     in (uniteCharger,uniteAttaquer)
+
+-- Deplcer Unite
+deplacer::Coord->Unite->Unite
+
+
