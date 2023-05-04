@@ -5,10 +5,11 @@ module Batiment where
 
 import Common
 import Carte
-import Joueur
+
 import qualified Data.Map as M
 import Data.List
 import Unite
+import Environnement
 
 -- Returns the cost (in credits) of a given building type.
 batimentTypeCost :: BatimentType -> Int
@@ -63,14 +64,7 @@ joueurProprioBatiment env bat =
       js = joueurs env
   in Data.List.find (\j -> myjid == jid j) js
 
--- update the environment with new batiment
-updateBatiment :: Batiment -> Environnement -> Environnement
-updateBatiment updatedBatiment env =
-  let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
-      updatedBatiments = M.insert (bid updatedBatiment) updatedBatiment (jbatiments currentPlayer)
-      updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
-      updatedGlobalBatiments = M.insert (bid updatedBatiment) updatedBatiment (batiments env)
-  in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments })
+
 
 -- produce unite si le batiment est "Usine"
 produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
@@ -106,7 +100,7 @@ terminerProduction j env bat =
                   env' = updateUnite newUnit env
                   env'' = updateBatiment newBatiment env'
               in env''
-            else 
+            else
               let newBatiment = bat {btempsProd = Just (t-1, utype)}
                   env' = updateBatiment newBatiment env
               in terminerProduction j env' newBatiment
@@ -114,15 +108,6 @@ terminerProduction j env bat =
     _ -> env
 
 
--- détruit un bâtiment et supprime ses coordonnées de la carte
-detruireBatiment :: Environnement -> Batiment -> Environnement
-detruireBatiment env bat = 
-    let updatedBatiments = M.delete (bid bat) (batiments env)
-        updatedCarte = setCaseVide (bcoord bat) (ecarte env)
-        currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio bat) (joueurs env)
-        updatedPlayerBatiments = M.delete (bid bat) (jbatiments currentPlayer)
-        updatedPlayer = currentPlayer { jbatiments = updatedPlayerBatiments }
-        updatedEnv = env { batiments = updatedBatiments, ecarte = updatedCarte }
-    in updateJoueur updatedPlayer updatedEnv
+
 
 

@@ -1,8 +1,11 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
+module Environnement
+where
 import Common
 import Carte
 import qualified Data.Map as M
 import Joueur
+import qualified Data.List
 
 prop_Entites_correctes :: Environnement -> Bool
 prop_Entites_correctes env =
@@ -56,5 +59,28 @@ envInvariant env = prop_Entites_correctes env
                    && prop_EauVide env
                    && prop_HerbeUniteOuBatiment env
                    && prop_RessourceUnite env
-    
 
+updateJoueur :: Joueur -> Environnement -> Environnement
+updateJoueur newj env =
+  let newjs = map (\j -> if jid j == jid newj then newj else j) (joueurs env)
+  in env { joueurs = newjs } 
+
+-- update the environment with new batiment
+updateBatiment :: Batiment -> Environnement -> Environnement
+updateBatiment updatedBatiment env =
+  let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
+      updatedBatiments = M.insert (bid updatedBatiment) updatedBatiment (jbatiments currentPlayer)
+      updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
+      updatedGlobalBatiments = M.insert (bid updatedBatiment) updatedBatiment (batiments env)
+  in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments })
+
+-- détruit un bâtiment et supprime ses coordonnées de la carte
+detruireBatiment :: Environnement -> Batiment -> Environnement
+detruireBatiment env bat =
+    let updatedBatiments = M.delete (bid bat) (batiments env)
+        updatedCarte = setCaseVide (bcoord bat) (ecarte env)
+        currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio bat) (joueurs env)
+        updatedPlayerBatiments = M.delete (bid bat) (jbatiments currentPlayer)
+        updatedPlayer = currentPlayer { jbatiments = updatedPlayerBatiments }
+        updatedEnv = env { batiments = updatedBatiments, ecarte = updatedCarte }
+    in updateJoueur updatedPlayer updatedEnv

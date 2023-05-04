@@ -5,6 +5,8 @@ import Common
 import Carte
 import Joueur
 import qualified Data.Map as M
+import Environnement
+
     
 prop_cuveInvariant :: Maybe Tank -> Bool
 prop_cuveInvariant Nothing = False
@@ -94,28 +96,48 @@ updateUnite updatedUnite env =
   in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
 
 -- Defirnir la porter d'attaque
-porter::Coord->Coord->Bool
-porter (C x y) (C a b) = (x-a)**2 + (y-b)**2 <= 4
+porter :: Coord -> Coord -> Bool
+porter (C x1 y1) (C x2 y2) = ((x1 - x2) ^ 2) + ((y1 - y2) ^ 2) <= 4
 
 -- Attaquer une entite 
-attaque::Unite->Entite->(Entite,Unite)
-attaque u e = case e of
-              Batiment -> if (bpointsVie e) < 2 then 
-                let batiment= (e {bpointsVie=0})
-                    unite =(u {upointsVie = (upointsVie u) + (bpointsVie e)})
-                in (unite,batiment)
-                else let batiment= (e {bpointsVie=(bpointsVie e)-2})
-                         unite =(u {upointsVie = (upointsVie u) + 2})
-                     in (unite,batiment)
-              Unite-> if (upointsVie e) < 2 then 
-                let uniteAttaquer= (e {upointsVie=0})
-                    uniteCharger =(u {upointsVie = (upointsVie u) + (upointsVie e)})
-                in (uniteCharger,uniteAttaquer)
-                else let uniteAttaquer= (e {upointsVie=(upointsVie e)-2})
-                         uniteCharger =(u {upointsVie = (upointsVie u) + 2})
-                     in (uniteCharger,uniteAttaquer)
+attaque :: Unite -> Entite -> Environnement -> Environnement
+attaque attaquant cible env =
+  case cible of
+    Left batiment -> attaqueBatiment attaquant batiment env
+    Right unite -> attaqueUnite attaquant unite env
+
+attaqueBatiment :: Unite -> Batiment -> Environnement -> Environnement
+attaqueBatiment attaquant batiment env =
+  let degats = case utype attaquant of
+                 Combatant -> 10
+                 _ -> 0
+      newPointsVie = max 0 (bpointsVie batiment - degats)
+      updatedBatiment = batiment { bpointsVie = newPointsVie }
+  in if newPointsVie == 0
+       then detruireBatiment env updatedBatiment
+       else updateBatiment updatedBatiment env
+
+attaqueUnite :: Unite -> Unite -> Environnement -> Environnement
+attaqueUnite attaquant cible env =
+  let degats = case utype attaquant of
+                 Combatant -> 10
+                 _ -> 0
+      newPointsVie = max 0 (upointsVie cible - degats)
+      updatedCible = cible { upointsVie = newPointsVie }
+  in if newPointsVie == 0
+       then removeUnite updatedCible env
+       else updateUnite updatedCible env
+
+removeUnite :: Unite -> Environnement -> Environnement
+removeUnite unite env =
+  let currentPlayer = head $ filter (\j -> jid j == uproprio unite) (joueurs env)
+      updatedUnites = M.delete (uid unite) (junites currentPlayer)
+      updatedPlayer = currentPlayer { junites = updatedUnites }
+      updatedGlobalUnites = M.delete (uid unite) (unites env)
+  in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
+
 
 -- Deplcer Unite
-deplacer::Coord->Unite->Unite
+-- deplacer::Coord->Unite->Unite
 
 

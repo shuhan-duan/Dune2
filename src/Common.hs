@@ -7,16 +7,15 @@ import Carte
 newtype JoueurId = JoueurId Int deriving (Show, Eq ,Ord)
 
 newtype UniteId = UniteId Int deriving (Show, Eq ,Ord)
+-- get Uid from UniteId
+unUniteId :: UniteId -> Int
+unUniteId (UniteId n) = n
 
 newtype BatId = BatId Int deriving (Show, Eq ,Ord)
 
 -- get BatId from newtype BatId
 unBatId :: BatId -> Int
 unBatId (BatId n) = n
-
--- get Uid from UniteId
-unUniteId :: UniteId -> Int
-unUniteId (UniteId n) = n
 
 data Joueur = Joueur { jid :: JoueurId
                         , jcredits :: Int

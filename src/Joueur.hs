@@ -24,8 +24,7 @@ getNextUniteId j = UniteId $ maximum (map unUniteId $ keys $ junites j) + 1
 joueurExiste :: JoueurId -> Environnement -> Bool
 joueurExiste joueurId env = joueurId `elem` fmap jid (joueurs env)
 
-updateJoueur :: Joueur -> Environnement -> Environnement
-updateJoueur newj env =
-  let newjs = map (\j -> if jid j == jid newj then newj else j) (joueurs env)
-  in env { joueurs = newjs }
+
+
+
 
