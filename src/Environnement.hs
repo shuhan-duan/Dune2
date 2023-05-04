@@ -84,3 +84,21 @@ detruireBatiment env bat =
         updatedPlayer = currentPlayer { jbatiments = updatedPlayerBatiments }
         updatedEnv = env { batiments = updatedBatiments, ecarte = updatedCarte }
     in updateJoueur updatedPlayer updatedEnv
+
+-- update the environment with new unite
+updateUnite :: Unite -> Environnement -> Environnement
+updateUnite updatedUnite env =
+  let currentPlayer = head $ filter (\j -> jid j == uproprio updatedUnite) (joueurs env)
+      updatedUnites = M.insert (uid updatedUnite) updatedUnite (junites currentPlayer)
+      updatedPlayer = currentPlayer { junites = updatedUnites }
+      updatedGlobalUnites = M.insert (uid updatedUnite) updatedUnite (unites env)
+  in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
+
+
+removeUnite :: Unite -> Environnement -> Environnement
+removeUnite unite env =
+  let currentPlayer = head $ filter (\j -> jid j == uproprio unite) (joueurs env)
+      updatedUnites = M.delete (uid unite) (junites currentPlayer)
+      updatedPlayer = currentPlayer { junites = updatedUnites }
+      updatedGlobalUnites = M.delete (uid unite) (unites env)
+  in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })

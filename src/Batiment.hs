@@ -64,8 +64,6 @@ joueurProprioBatiment env bat =
       js = joueurs env
   in Data.List.find (\j -> myjid == jid j) js
 
-
-
 -- produce unite si le batiment est "Usine"
 produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
 produireUnite env utype bat =
