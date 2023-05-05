@@ -98,6 +98,25 @@ terminerProduction j env bat =
         Nothing -> env
     _ -> env
 
+-- creates a new Environnement given a Carte and a list of Coord.
+creerEnvironnement :: Carte -> [Coord] -> Environnement
+creerEnvironnement carte qgCoords =
+  let joueurIds = [1..length qgCoords]
+      initialCredits = 1000
+      initialJoueurs = [ Joueur { jid = JoueurId jid
+                                , jcredits = initialCredits
+                                , jbatiments = M.empty
+                                , junites = M.empty
+                                , jenergieConsume = 0
+                                , jenergieProduit = 0
+                                } | jid <- joueurIds ]
+      initialEnv = Environnement { joueurs = initialJoueurs
+                                 , ecarte = carte
+                                 , unites = M.empty
+                                 , batiments = M.empty
+                                 }
+  in foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
+           initialEnv (zip initialJoueurs qgCoords)
 
 
 
