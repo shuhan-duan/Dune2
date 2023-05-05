@@ -135,7 +135,7 @@ executerCommande cmd env =
         Nothing -> env
     Produire jid utype -> -- Produce a new unit
       let joueur = findJoueur jid (joueurs env)
-          usine = findUsineForJoueur joueur (batiments env) -- You need to implement this function
+          usine = findUsineForJoueur joueur (batiments env) 
       in case usine of
         Just u -> produireUnite env utype u
         Nothing -> env
