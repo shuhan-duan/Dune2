@@ -103,6 +103,34 @@ removeUnite unite env =
       updatedGlobalUnites = M.delete (uid unite) (unites env)
   in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
 
+getUnite::UniteId->Environnement->Unite
+getUnite u env =
+    let unite = M.lookup u (unites env)
+    in case unite of
+        Just unite'-> unite'
+        Nothing -> error "undifined"
+
+getBatiment:: BatId->Environnement->Batiment
+getBatiment b env=
+    let batiment = M.lookup b (batiments env)
+    in case batiment of
+        Just batiment'-> unite'
+        Nothing -> error "undifined"
+
+isMissingBat::Batiment->Environnement->Bool
+isMissingBat batiment env =
+  let verif = M.lookup (bid batiment) (batiments env)
+  in case verif of 
+      Just _ -> True
+      Nothing -> False
+
+isMissingUnit::Unite->Environnement->Bool
+isMissingUnit unite env =
+   let verif = M.lookup (uid batiment) (unites env)
+   in case verif of 
+      Just _ -> True
+      Nothing -> False
+
 
 
 

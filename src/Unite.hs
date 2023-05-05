@@ -111,6 +111,36 @@ attaque attaquant cible env =
     Left batiment -> attaqueBatiment attaquant batiment env
     Right unite -> attaqueUnite attaquant unite env
 
+-- Pres condition attaque
+prop_preAttaque :: Unite -> Entite -> Environnement -> Bool
+prop_preAttaque unite=
+  case (utype unite) of
+    Combatant-> True
+    otherwise->False
+-- Post Condition attaque
+prop_postAttaque :: Unite -> Entite -> Environnement -> Bool
+prop_postAttaque unite cible env =
+  let result = attaque unite cible env 
+      degats = 10
+  in case cible of
+      Left batiment -> 
+        let newPointVie= max 0 (bpointsVie batiment - degats)
+        in if newPointsVie == 0
+           then isMissingBat batiment result
+           else 
+            let batupdate = getBatiment (bid batiment) result
+                pointdeVie = bpointsVie batupdate
+            in pointdeVie == newPointsVie
+      Right unite ->
+        let newPointVie= max 0 (upointsVie unite - degats)
+        in if newPointsVie == 0
+           then isMissingUnit unit result
+           else 
+            let uniteUpdqte = getUnite (uid unite) result
+                pointdeVie = upointsVie uniteUpdate
+            in pointdeVie == newPointsVie
+
+
 attaqueBatiment :: Unite -> Batiment -> Environnement -> Environnement
 attaqueBatiment attaquant batiment env =
   let degats = case utype attaquant of
@@ -181,6 +211,38 @@ collecterRessource unite carte env =
         _ -> env -- No resource at the unit's position
     _ -> env -- The unit is not a collector
 
+-- Recuperer cuve
+getcuve::Unite->Tank
+getcuve u =
+  case (utype u) of
+    Collecteur t = t
+    _ = error "is not collector"
+
+
+--Post condition collecte
+prop_post_CollecterRessource :: Unite -> Carte -> Environnement ->Bool
+post_CollecterRessource unite carte env =
+  let collecte = collecterRessource unite carte env
+  in case utype unite of
+      Collecteur cuve ->
+        case getTerrain carte (ucoord unite) of
+          Just (Ressource _) ->
+            case remplirCuve cuve q of
+              Just cuve1->
+                let unite'= M.lookup (uid unite) (uTache collecte)
+                    capaciteDisponible = capacite cuve - quantite cuve
+                    cuve2= getcuve unite'
+                in (cuve1==cuve2) && ((prop_postCollecteCase) (ucoord unite) capaciteDisponible (ecarte env))
+              Nothing->
+                let unite'= M.lookup (uid unite) (uTache collecte)
+                    cuve2= getcuve unite'
+                in (cuve==cuve2) && ((prop_postCollecteCase) (ucoord unite) 0 (ecarte env))
+            _ ->  let unite'= M.lookup (uid unite) (uTache collecte)
+                      capaciteDisponible = capacite cuve - quantite cuve
+                      cuve2= getcuve unite'
+                  in (cuve==cuve2) && ((prop_postCollecteCase) (ucoord unite) capaciteDisponible (ecarte env))
+      _ -> True
+
 executeOrdreCollecte :: Unite -> Environnement -> Coord -> Environnement
 executeOrdreCollecte unite env targetCoord
   | not (isCollecteur unite) = env -- The unit is not a collector, so no action is taken
@@ -243,3 +305,31 @@ etape  unite env =
 
 tourDeJeu :: Environnement -> Environnement
 tourDeJeu env = M.foldr etape env (unites env)
+
+
+-- Propriete et invariant 
+
+prop1_inv_Unite:: Unite -> Bool
+prop1_inv_Unite u = L.elem (ubut u) (uTache u)
+
+ordreCollecteur:: Ordre->Bool
+ordreCollecteur Collecter _ = True
+ordreCollecteur Deplacer _ = True
+ordreCollecteur _ = False
+
+ordreCombattant :: Ordre -> Bool 
+ordreCollecteur Patrouiller _ _ = True
+ordreCollecteur Deplacer _ = True
+ordreCombattant Attaquer _ = True
+ordreCollecteur _ = False
+
+
+prop_Ordre::Ordre->Unite->Bool
+prop_Ordre_Collecteur ordre u = 
+  case (utype u) of 
+    Collecteur t-> ordreCollecteur ordre
+    Combatant -> ordreCombattant ordre
+
+prop_Ordre_Unite::Unite->Bool
+prop_Ordre_Unite unite=
+  all (`prop_Ordre` unite) (uTache unite)
