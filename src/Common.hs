@@ -55,7 +55,7 @@ data Tank = Tank Int Int
             |EmptyTank Int
             |FullTank Int
                 deriving (Show,Eq)
-                
+
 data UniteType = Collecteur Tank
                 | Combatant deriving (Show, Eq)
 
@@ -78,4 +78,8 @@ data Environnement = Environnement{
                 unites :: Map UniteId Unite ,
                 batiments :: Map BatId Batiment
                 }
+
+entiteCoord :: Entite -> Coord
+entiteCoord (Left batiment) = bcoord batiment
+entiteCoord (Right unite) = ucoord unite
 

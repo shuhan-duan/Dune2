@@ -208,21 +208,26 @@ executeOrdrePatrouille unite env
           let ennemi = findEnnemiInRange unite env
           in case ennemi of
             Just entite -> attaque unite entite env
-            Nothing -> case uordres unite of
-              (Patrouiller pt1 pt2:_) -> deplacer pt1 unite env
-              _ -> env
+            Nothing -> case headCoord (uordres unite) of
+              Just pt1 -> deplacer pt1 unite env
+              Nothing -> env
         Deplacer _ ->
-          if ucoord unite == headCoord (uordres unite) then
-            let (Patrouiller pt1 pt2:rest) = uordres unite
-                newPatrouille = Patrouiller pt2 pt1
-                updatedUnite = unite { uordres = newPatrouille : rest }
-            in deplacer pt2 updatedUnite env
-          else env
+          case headCoord (uordres unite) of
+            Just pt1 ->
+              if ucoord unite == pt1 then
+                case uordres unite of
+                  (Patrouiller pt1' pt2:rest) ->
+                    let newPatrouille = Patrouiller pt2 pt1'
+                        updatedUnite = unite { uordres = newPatrouille : rest }
+                    in deplacer pt2 updatedUnite env
+                  _ -> env
+              else env
+            Nothing -> env
         _ -> env
 
-headCoord :: [Ordre] -> Coord
-headCoord (Patrouiller pt1 pt2:_) = pt1
-headCoord _ = error "Invalid patrouille ordre"
+headCoord :: [Ordre] -> Maybe Coord
+headCoord (Patrouiller pt1 _:_) = Just pt1
+headCoord _ = Nothing
 
 findEnnemiInRange :: Unite -> Environnement -> Maybe Entite
 findEnnemiInRange unite env =
@@ -232,9 +237,5 @@ findEnnemiInRange unite env =
       ennemiEntites = map Right ennemiUnites ++ map Left ennemiBatiments
       ennemiInRange = filter (porter (ucoord unite) . entiteCoord) ennemiEntites
   in listToMaybe ennemiInRange
-
-entiteCoord :: Entite -> Coord
-entiteCoord (Left batiment) = bcoord batiment
-entiteCoord (Right unite) = ucoord unite
 
 
