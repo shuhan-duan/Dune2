@@ -4,10 +4,10 @@ module Unite where
 import Common
 import Carte
 import Joueur
-import qualified Data.Map as M
 import Environnement
+import qualified Data.Map as M
+import Data.Maybe
 
-    
 prop_cuveInvariant :: Maybe Tank -> Bool
 prop_cuveInvariant Nothing = False
 prop_cuveInvariant (Just (EmptyTank cap)) = cap >= 0
@@ -15,9 +15,9 @@ prop_cuveInvariant (Just (FullTank cap)) = cap >= 0
 prop_cuveInvariant (Just (Tank cap cour)) = cap > 0 && cour > 0 && cour <= cap
 
 initCuve :: Int -> Maybe Tank
-initCuve cap 
+initCuve cap
     | cap > 0 = Just $ EmptyTank cap
-    | otherwise = Nothing 
+    | otherwise = Nothing
 
 quantite ::Tank -> Int
 quantite (Tank _ q) = q
@@ -31,16 +31,16 @@ capacite (FullTank c) = c
 
 changeCuve :: Tank -> Int -> Tank
 changeCuve cu q
-        | q == 0 = EmptyTank (capacite cu) 
+        | q == 0 = EmptyTank (capacite cu)
         | q == capacite cu = FullTank (capacite cu)
         | otherwise  = Tank (capacite cu) q
 
 -- v: volume
 remplirCuve ::Tank -> Int -> Maybe Tank
-remplirCuve _ v | v <= 0 = Nothing 
-remplirCuve cu v = 
-    let q = v + quantite cu in 
-        if q <= capacite cu then 
+remplirCuve _ v | v <= 0 = Nothing
+remplirCuve cu v =
+    let q = v + quantite cu in
+        if q <= capacite cu then
         Just $ changeCuve cu q
                     else Nothing
 
@@ -51,25 +51,38 @@ capaciteCuve (Collecteur t) = case t of
                                 Tank c _ -> c
 capaciteCuve Combatant = 0 -- Les combattants ne peuvent pas collecter de ressources
 
+isCollecteur :: Unite -> Bool
+isCollecteur (Unite {utype = Collecteur _}) = True
+isCollecteur _ = False
+
+isCombattant :: Unite -> Bool
+isCombattant (Unite { utype = Combatant }) = True
+isCombattant _ = False
+
+-- check the cuve is full
+isFull :: Tank -> Bool
+isFull (FullTank _) = True
+isFull _ = False
+
+-- Returns the capacity of the cuve of a given unite type.
+uniteTypeCapaciteCuve :: UniteType -> Int
+uniteTypeCapaciteCuve (Collecteur tank) = capacite tank
+uniteTypeCapaciteCuve Combatant = 0 -- Combatants do not have tanks
+
 -- Returns the cost (in credits) of a given unite type.
 uniteTypeCost :: UniteType -> Int
-uniteTypeCost (Collecteur _) = 10 
-uniteTypeCost Combatant = 10 
+uniteTypeCost (Collecteur _) = 10
+uniteTypeCost Combatant = 10
 
 -- Returns the product time of a given unite type.
 uniteTypeTempsProd :: UniteType -> Int
-uniteTypeTempsProd (Collecteur _)  = 20 
+uniteTypeTempsProd (Collecteur _)  = 20
 uniteTypeTempsProd Combatant = 15
 
 -- Returns the point of life  of a given unite type.
 uniteTypePointsVie :: UniteType -> Int
 uniteTypePointsVie (Collecteur _) = 100
 uniteTypePointsVie Combatant = 50
-
--- Returns the capacity of the cuve of a given unite type.
-uniteTypeCapaciteCuve :: UniteType -> Int
-uniteTypeCapaciteCuve (Collecteur tank) = capacite tank
-uniteTypeCapaciteCuve Combatant = 0 -- Combatants do not have tanks
 
 -- create new unite 
 creerUnite :: UniteType -> Joueur -> Coord -> Unite
@@ -83,7 +96,7 @@ creerUnite utype joueur coord =
     upointsVie = uniteTypePointsVie utype,
     ucuve = initCuve (uniteTypeCapaciteCuve utype),
     uordres = [],
-    ubut = Deplacement coord
+    ubut = Deplacer coord
   }
 
 
@@ -121,94 +134,107 @@ attaqueUnite attaquant cible env =
        else updateUnite updatedCible env
 
 -- Deplacer une unite
-updateCoordEO::Unite->Unite
-modifCoordEO u = 
-    let x= (cx (ucoord u))+1  
-        y=(cy (ucoord u))
-        z= u{ucoord = creeCoord x y} 
-    in z
-
-updateCoordNS::Unite->Unite
-modifCoordNS u= 
-  let x= (cx (ucoord u))  
-      y=(cy (ucoord u)) +1 
-      z= u {ucoord = creeCoord x y} 
+modifCoordEO :: Unite -> Direction -> Unite
+modifCoordEO u dir =
+  let x = cx (ucoord u) + if dir == Est then 1 else -1
+      y = cy (ucoord u)
+      z = u {ucoord = creeCoord x y}
   in z
 
-verifPosition::Coord->Coord->Bool
-verifPosition c1 c2 = 
-  let x = abs (cx c1 - cx c2)
-      y = abs (cy c1 - cy c2)
-  in x > y
+modifCoordNS :: Unite -> Direction -> Unite
+modifCoordNS u dir =
+  let x = cx (ucoord u)
+      y = cy (ucoord u) + if dir == Nord then 1 else -1
+      z = u {ucoord = creeCoord x y}
+  in z
 
+deplacer :: Coord -> Unite -> Environnement -> Environnement
+deplacer coord unite env =
+  let updatedUnite = unite {ubut = Deplacer coord}
+      newUnite = case udirection updatedUnite of
+        Nord -> modifCoordNS updatedUnite Nord
+        Est -> modifCoordEO updatedUnite Est
+        Sud -> modifCoordNS updatedUnite Sud
+        Ouest -> modifCoordEO updatedUnite Ouest
+  in updateUnite newUnite env
 
-
-deplacer::Coord->Unite->Environnement->Environnement
-deplacer coord unite env = case (verifPosition coord (ucoord u)) of
-                            True -> let uniteUpdate = updateCoordEO unite
-                                    in updateUnite uniteUpdate env 
-                            False -> let uniteUpdate = updateCoordEO unite
-                                     in updateUnite uniteUpdate env 
+modifBut :: Ordre -> Unite -> Environnement -> Environnement
+modifBut o u env =
+  let uniteUpdate = u {ubut = o}
+  in updateUnite uniteUpdate env
 
 -- Collecter de la ressource
+collecterRessource :: Unite -> Carte -> Environnement -> Environnement
+collecterRessource unite carte env =
+  case utype unite of
+    Collecteur cuve -> -- The unit is a collector
+      case getTerrain carte (ucoord unite) of
+        Just (Ressource _) -> -- There is a resource at the unit's position
+          let capaciteDisponible = capacite cuve - quantite cuve
+              (q, carte') = collecteCase (ucoord unite) capaciteDisponible carte
+          in case remplirCuve cuve q of
+               Just cuve' -> -- Update the unit's cuve and the map
+                 let unite' = unite {ucuve = Just cuve'}
+                     env' = env {ecarte = carte'}
+                 in updateUnite unite' env'
+               Nothing -> env
+        _ -> env -- No resource at the unit's position
+    _ -> env -- The unit is not a collector
 
-modif_But :: Ordre->Unite->Environnement->Environment
-modif_But o u env = 
-  let uniteUpdate = u{ubut=o} 
-  in updateUnite uniteUpdate env 
+executeOrdreCollecte :: Unite -> Environnement -> Coord -> Environnement
+executeOrdreCollecte unite env targetCoord
+  | not (isCollecteur unite) = env -- The unit is not a collector, so no action is taken
+  | otherwise = case ucuve unite of
+      Just cuve ->
+        if isFull cuve then
+          let raffinerie = findRaffinerie env (uproprio unite) -- Find a raffinerie owned by the unit's owner
+          in case raffinerie of
+            Just raff -> deplacer (bcoord raff) unite env -- Move the collector to the raffinerie
+            Nothing -> env -- No raffinerie found
+        else
+          let carte = ecarte env
+              terrain = getTerrain carte (ucoord unite)
+          in case terrain of
+            Just (Ressource _) -> collecterRessource unite carte env -- Collect resources
+            _ -> deplacer targetCoord unite env -- Move the collector to the target location
+      Nothing -> env -- The collector has no cuve, so no action is taken
 
-collecte::Coord->Unite->Environnement->Environnement
-collecte c u e= 
-  case (uid u) of
-    Collecteur t -> let (r,carte)=collecteCase coord 10 (ecarte e)
-                        uniteUpdate= unite{uid= Collecteur (remplirCuve t)}
-                        env= e{ecarte=carte}
-                    in   updateUnite uniteUpdate env
-    _ -> e
+executeOrdrePatrouille :: Unite -> Environnement -> Environnement
+executeOrdrePatrouille unite env
+  | not (isCombattant unite) = env -- The unit is not a combatant, so no action is taken
+  | otherwise =
+      case ubut unite of
+        Attaquer _ ->
+          let ennemi = findEnnemiInRange unite env
+          in case ennemi of
+            Just entite -> attaque unite entite env
+            Nothing -> case uordres unite of
+              (Patrouiller pt1 pt2:_) -> deplacer pt1 unite env
+              _ -> env
+        Deplacer _ ->
+          if ucoord unite == headCoord (uordres unite) then
+            let (Patrouiller pt1 pt2:rest) = uordres unite
+                newPatrouille = Patrouiller pt2 pt1
+                updatedUnite = unite { uordres = newPatrouille : rest }
+            in deplacer pt2 updatedUnite env
+          else env
+        _ -> env
+
+headCoord :: [Ordre] -> Coord
+headCoord (Patrouiller pt1 pt2:_) = pt1
+headCoord _ = error "Invalid patrouille ordre"
+
+findEnnemiInRange :: Unite -> Environnement -> Maybe Entite
+findEnnemiInRange unite env =
+  let currentPlayerId = uproprio unite
+      ennemiUnites = filter (\u -> uproprio u /= currentPlayerId) (M.elems (unites env))
+      ennemiBatiments = filter (\b -> bproprio b /= currentPlayerId) (M.elems (batiments env))
+      ennemiEntites = map Right ennemiUnites ++ map Left ennemiBatiments
+      ennemiInRange = filter (porter (ucoord unite) . entiteCoord) ennemiEntites
+  in listToMaybe ennemiInRange
+
+entiteCoord :: Entite -> Coord
+entiteCoord (Left batiment) = bcoord batiment
+entiteCoord (Right unite) = ucoord unite
 
 
-collecterRessource::Coord->Unite->Environnement->Environnement
-collecterRessource coord unite env = case  (M.lookup coord (ecarte e)) of
-                            Nothing->env
-                            Just a-> case a of
-                                      Ressource n-> collecte coord unite env
-                                      _ -> env
-
-collecteurPlein::UniteId-> Maybe Bool
-collecteurPlein u = case u of
-                    Collecteur t -> (case t of   
-                                    FullTank c -> Just True
-                                    _-> Just False)
-                    otherwase->Nothing
-
-changeButCollecteur::Unite->Environnement->Environment
-changeButCollecte unite env = case (collecteurPlein (uid u)) of 
-                        Nothing-> u
-                        Just False -> (case (M.lookup (ucoord u) (ecarte e)) of
-                                        Nothing-> u
-                                        Just a -> (case a of
-                                                    Ressource n-> modif_But (Collecter (ucoord u)) u env
-                                                    _-> env
-                                                    )
-                                                  )
-                        Just True -> -- | probleme avec la raffinerie 
-
--- Patrouille 
-ennemie::Unite->Entite->Bool
-ennemie u e = case e of 
-            Left batiment -> (uproprio u) \= (bproprio batiment)
-            Right unite -> (uproprio u) \= (uproprio unite)
-
-fillHeadPat::Unite->Bool
-fillHeadPat u = case (head (uordres u)) of
-                  Patrouiller a b -> True
-                  _ -> False
-
-
-
-
-patrouille::Unite->Environnement->Environnement
-patrouille unite env =
-  if fillHeadPat u then
-         
-   

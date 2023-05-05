@@ -37,27 +37,25 @@ data Batiment = Batiment { bid :: BatId
                             , btempsProd :: Maybe (Int, UniteType) -- ( temps restant,unité produite)
                             }deriving (Show, Eq)
 
-data Tank = Tank Int Int
-            |EmptyTank Int
-            |FullTank Int
-                deriving (Show,Eq)
+
 
 type Entite = Either Batiment Unite
 
 type EntiteId = Either BatId UniteId
+
+data Direction = Nord | Est | Sud | Ouest
+  deriving (Show, Eq, Enum)
 
 data Ordre = Collecter Coord
             | Deplacer Coord
             | Attaquer Entite
             | Patrouiller Coord Coord deriving (Show, Eq)
 
-
-data Direction = Nord | Est | Sud | Ouest
-  deriving (Show, Eq, Enum)
-
-data But = Deplacement Coord | Attaque EntiteId | Collecte Coord | Patrouille Coord Coord
-  deriving (Show, Eq)
-
+data Tank = Tank Int Int
+            |EmptyTank Int
+            |FullTank Int
+                deriving (Show,Eq)
+                
 data UniteType = Collecteur Tank
                 | Combatant deriving (Show, Eq)
 
@@ -70,8 +68,9 @@ data Unite = Unite {
     upointsVie :: Int,
     ucuve :: Maybe Tank,
     uordres :: [Ordre],
-    ubut :: But
+    ubut :: Ordre
 } deriving (Show, Eq)
+
 
 data Environnement = Environnement{
                 joueurs :: [Joueur],

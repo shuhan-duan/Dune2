@@ -7,9 +7,9 @@ import Common
 import Carte
 
 import qualified Data.Map as M
-import Data.List
 import Unite
 import Environnement
+import Joueur
 
 -- Returns the cost (in credits) of a given building type.
 batimentTypeCost :: BatimentType -> Int
@@ -56,13 +56,6 @@ construireBatiment joueur env btype coord
 -- Si le résultat est inférieur à 0, les points de vie sont fixés à 0.    
 modifierPointsVie :: Int -> Batiment -> Batiment
 modifierPointsVie deltaPoints batiment = batiment { bpointsVie = max 0 (bpointsVie batiment - deltaPoints) }
-
--- get the proprio joueur of batiment
-joueurProprioBatiment :: Environnement -> Batiment -> Maybe Joueur
-joueurProprioBatiment env bat =
-  let myjid = bproprio bat
-      js = joueurs env
-  in Data.List.find (\j -> myjid == jid j) js
 
 -- produce unite si le batiment est "Usine"
 produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
