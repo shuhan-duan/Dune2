@@ -103,3 +103,8 @@ removeUnite unite env =
       updatedGlobalUnites = M.delete (uid unite) (unites env)
   in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
 
+
+
+
+
+

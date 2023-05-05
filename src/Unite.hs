@@ -238,4 +238,15 @@ findEnnemiInRange unite env =
       ennemiInRange = filter (porter (ucoord unite) . entiteCoord) ennemiEntites
   in listToMaybe ennemiInRange
 
+etape :: Unite -> Environnement -> Environnement
+etape  unite env =
+  case ubut unite of
+    Attaquer entite -> attaque unite entite env
+    Deplacer coord -> deplacer coord unite env
+    Collecter coord ->
+      let env' = executeOrdreCollecte unite env coord
+      in executeOrdrePatrouille unite env'
+    _ -> env
 
+tourDeJeu :: Environnement -> Environnement
+tourDeJeu env = M.foldr etape env (unites env)

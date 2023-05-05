@@ -13,13 +13,13 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/package.yaml:
   hash: dcf48b66b6702e3d51ac6a11d46aa740ce6c714d4244866560a59e97d08dd93c
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Batiment.hs:
-  hash: 66bc40e56ca87daa8bd85a3d0bb36fd25655b67ca40c095cf50e62c386b085a2
+  hash: 24c1262e49368ac876ee84582d92373e256c61ca334265ecff09f893452f476d
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Carte.hs:
   hash: b6d2558451262bc118a829960aa32d9335ea5f84c206387464eeb854a28006d1
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Common.hs:
   hash: df5250dffd6e45b79108dcd0661b96edcca13e8bffeffdd00a00a5e82101936c
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Environnement.hs:
-  hash: b0f41436b6d5da2b3b6370a606104eb73fd87eeeb858443e47fbe4fda5f27395
+  hash: 9d35c362a716b971d6a03d082d600ae4c413dc4f4862557c70fb7e1c253ea119
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Joueur.hs:
   hash: a2161126f08dc4038f76d93ccaa131b51bf81a6644f81024a0f10adcc5241607
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Keyboard.hs:
@@ -35,4 +35,4 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/TextureMap.hs:
   hash: a78ebf5f6d72a0acd3e7b5c948242c48911bbe4581b189d4791faf5d09c9c5ff
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Unite.hs:
-  hash: 0717deb6557d26809256a2e26297d6c34995e12f49eddd629640a23de71891ed
+  hash: 2943a3d0585ed410f68c9a2eb7155cad22b91d85b7f49d3d6959b716926b4bc4

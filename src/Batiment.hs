@@ -135,7 +135,7 @@ executerCommande cmd env =
         Nothing -> env
     Produire jid utype -> -- Produce a new unit
       let joueur = findJoueur jid (joueurs env)
-          usine = findUsineForJoueur joueur (batiments env) 
+          usine = findUsineForJoueur joueur (batiments env)
       in case usine of
         Just u -> produireUnite env utype u
         Nothing -> env
@@ -153,4 +153,41 @@ findUsineForJoueur (Just joueur) batiments =
   let usines = M.filter (\b -> btype b == Usine && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
   in if M.null usines then Nothing else Just (snd (M.findMin usines))
 
+-- Calculate the total energy production and consumption of the player's building
+energieTotal :: Joueur -> Int
+energieTotal joueur = sum (Prelude.map benergie (M.elems (jbatiments joueur)))
+
+-- Update player's building status 
+updateEtatBatiments :: Joueur -> Joueur
+updateEtatBatiments joueur =
+  let totalEnergie = energieTotal joueur
+      closeBatiment bat
+        | btype bat `elem` [Raffinerie, Usine] =
+            if totalEnergie < 0
+               then bat { btempsProd = Nothing }
+               else bat
+        | otherwise = bat
+      batimentsMisAJour = M.map closeBatiment (jbatiments joueur)
+  in joueur { jbatiments = batimentsMisAJour }
+
+-- Update building status for all players
+updateEtatBatimentsForALL :: Environnement -> Environnement
+updateEtatBatimentsForALL env =
+  let joueursMisAJour = Prelude.map updateEtatBatiments (joueurs env)
+  in env { joueurs = joueursMisAJour }
+
+-- Update the player's building status at the start of each turn
+debutTour :: Environnement -> Environnement
+debutTour env =
+  let env' = updateEtatBatimentsForALL env
+      env'' = terminerProductionForALL env'
+  in env''
+
+-- End production of units for all players
+terminerProductionForALL :: Environnement -> Environnement
+terminerProductionForALL env =
+  Prelude.foldl (\accEnv joueur ->
+            Prelude.foldl (terminerProduction joueur
+                  ) accEnv (M.elems (jbatiments joueur))
+        ) env (joueurs env)
 
