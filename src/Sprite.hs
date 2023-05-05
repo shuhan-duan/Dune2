@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Sprite where
 
 import Control.Monad.IO.Class (MonadIO)
@@ -100,3 +101,4 @@ position sprite = let (Rectangle (P pos) _) = destArea sprite
 size :: Sprite -> V2 CInt
 size sprite = let (Rectangle _ wh) = destArea sprite
                   in wh
+                  

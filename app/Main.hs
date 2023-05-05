@@ -55,7 +55,7 @@ loadPerso rdr path tmap smap = do
 main :: IO ()
 main = do
   initializeAll
-  window <- createWindow "Minijeu" $ defaultWindow { windowInitialSize = V2 640 480 }
+  window <- createWindow "Dune 2" $ defaultWindow { windowInitialSize = V2 640 480 }
   renderer <- createRenderer window (-1) defaultRenderer
   -- chargement de l'image du fond
   (tmap, smap) <- loadBackground renderer "assets/background.bmp" TM.createTextureMap SM.createSpriteMap

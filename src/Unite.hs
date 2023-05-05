@@ -241,6 +241,5 @@ etape  unite env =
     Patrouiller coord1 coord2 -> executeOrdrePatrouille unite env coord1 coord2
 
 
-
 tourDeJeu :: Environnement -> Environnement
 tourDeJeu env = M.foldr etape env (unites env)

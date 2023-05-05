@@ -2,6 +2,7 @@
 module Carte where
 
 import qualified Data.Map.Strict as M
+import System.Random
 
 data Coord = C {cx :: Int, cy :: Int}
     deriving (Show, Eq)
@@ -109,3 +110,13 @@ isEau _ = False
 setCaseVide :: Coord -> Carte -> Carte
 setCaseVide coord (Carte c) = Carte $ M.insert coord Herbe c
 
+generateRandomMap :: Int -> Int -> StdGen -> Carte
+generateRandomMap width height gen =
+  let coords = [C x y | x <- [0..width - 1], y <- [0..height - 1]]
+      randomTerrains = randomRs (0, 2) gen :: [Int]
+      terrainFromInt n = case n of
+        0 -> Herbe
+        1 -> Ressource (50 + mod n 100)
+        _ -> Eau
+      terrains = map terrainFromInt randomTerrains
+  in Carte . M.fromList $ zip coords terrains
