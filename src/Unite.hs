@@ -199,8 +199,8 @@ executeOrdreCollecte unite env targetCoord
             _ -> deplacer targetCoord unite env -- Move the collector to the target location
       Nothing -> env -- The collector has no cuve, so no action is taken
 
-executeOrdrePatrouille :: Unite -> Environnement -> Environnement
-executeOrdrePatrouille unite env
+executeOrdrePatrouille :: Unite -> Environnement -> Coord -> Coord -> Environnement
+executeOrdrePatrouille unite env coord1 coord2
   | not (isCombattant unite) = env -- The unit is not a combatant, so no action is taken
   | otherwise =
       case ubut unite of
@@ -208,21 +208,15 @@ executeOrdrePatrouille unite env
           let ennemi = findEnnemiInRange unite env
           in case ennemi of
             Just entite -> attaque unite entite env
-            Nothing -> case headCoord (uordres unite) of
-              Just pt1 -> deplacer pt1 unite env
-              Nothing -> env
+            Nothing -> deplacer coord1 unite env
         Deplacer _ ->
-          case headCoord (uordres unite) of
-            Just pt1 ->
-              if ucoord unite == pt1 then
-                case uordres unite of
-                  (Patrouiller pt1' pt2:rest) ->
-                    let newPatrouille = Patrouiller pt2 pt1'
-                        updatedUnite = unite { uordres = newPatrouille : rest }
-                    in deplacer pt2 updatedUnite env
-                  _ -> env
-              else env
-            Nothing -> env
+          if ucoord unite == coord1 then
+            let updatedUnite = unite { ubut = Deplacer coord2 }
+            in deplacer coord2 updatedUnite env
+          else if ucoord unite == coord2 then
+            let updatedUnite = unite { ubut = Deplacer coord1 }
+            in deplacer coord1 updatedUnite env
+          else env
         _ -> env
 
 headCoord :: [Ordre] -> Maybe Coord
@@ -243,10 +237,10 @@ etape  unite env =
   case ubut unite of
     Attaquer entite -> attaque unite entite env
     Deplacer coord -> deplacer coord unite env
-    Collecter coord ->
-      let env' = executeOrdreCollecte unite env coord
-      in executeOrdrePatrouille unite env'
-    _ -> env
+    Collecter coord -> executeOrdreCollecte unite env coord
+    Patrouiller coord1 coord2 -> executeOrdrePatrouille unite env coord1 coord2
+
+
 
 tourDeJeu :: Environnement -> Environnement
 tourDeJeu env = M.foldr etape env (unites env)
