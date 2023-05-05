@@ -10,6 +10,8 @@ import qualified Data.Map as M
 import Unite
 import Environnement
 import Joueur
+import Data.Map
+import Data.Maybe
 
 -- Returns the cost (in credits) of a given building type.
 batimentTypeCost :: BatimentType -> Int
@@ -115,9 +117,40 @@ creerEnvironnement carte qgCoords =
                                  , unites = M.empty
                                  , batiments = M.empty
                                  }
-  in foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
+  in Prelude.foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
            initialEnv (zip initialJoueurs qgCoords)
 
+executerCommande :: Commande -> Environnement -> Environnement
+executerCommande cmd env =
+  case cmd of
+    DonnerOrdre uid ordre -> -- Update the unit with the new order
+      let unite = M.lookup uid (unites env)
+      in case unite of
+        Just u -> updateUnite (u {uordres = ordre : uordres u}) env
+        Nothing -> env
+    Construire jid btype coord -> -- Build a new building at the specified coordinates
+      let joueur = findJoueur jid (joueurs env)
+      in case joueur of
+        Just j -> construireBatiment j env btype coord
+        Nothing -> env
+    Produire jid utype -> -- Produce a new unit
+      let joueur = findJoueur jid (joueurs env)
+          usine = findUsineForJoueur joueur (batiments env) -- You need to implement this function
+      in case usine of
+        Just u -> produireUnite env utype u
+        Nothing -> env
 
+
+findJoueur :: JoueurId -> [Joueur] -> Maybe Joueur
+findJoueur _ [] = Nothing
+findJoueur id' (j:js)
+  | jid j == id' = Just j
+  | otherwise = findJoueur id' js
+
+findUsineForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
+findUsineForJoueur Nothing _ = Nothing
+findUsineForJoueur (Just joueur) batiments =
+  let usines = M.filter (\b -> btype b == Usine && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
+  in if M.null usines then Nothing else Just (snd (M.findMin usines))
 
 

@@ -83,3 +83,7 @@ entiteCoord :: Entite -> Coord
 entiteCoord (Left batiment) = bcoord batiment
 entiteCoord (Right unite) = ucoord unite
 
+data Commande = DonnerOrdre UniteId Ordre
+              | Construire JoueurId BatimentType Coord
+              | Produire JoueurId UniteType
+              deriving (Show, Eq)
