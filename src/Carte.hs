@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Carte where
 
 import qualified Data.Map.Strict as M

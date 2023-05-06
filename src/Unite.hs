@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Unite where
 
 import Common

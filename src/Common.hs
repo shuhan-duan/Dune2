@@ -87,3 +87,13 @@ data Commande = DonnerOrdre UniteId Ordre
               | Construire JoueurId BatimentType Coord
               | Produire JoueurId UniteType
               deriving (Show, Eq)
+
+getFilePathForUnite :: UniteType -> String
+getFilePathForUnite (Collecteur _) = "assets/collecteur.png"
+getFilePathForUnite Combatant = "assets/combatant.png"
+
+getFilePathForBatiment :: BatimentType -> String
+getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
+getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
+getFilePathForBatiment Usine = "assets/usine.png"
+getFilePathForBatiment Centrale = "assets/centrale.png"

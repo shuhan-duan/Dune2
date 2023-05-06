@@ -43,7 +43,7 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 bindir     = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/bin"
-libdir     = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/lib/x86_64-osx-ghc-9.2.5/dune2-0.1.0.0-Fa4DMvKbFREE4Yo6RFFJ3K"
+libdir     = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/lib/x86_64-osx-ghc-9.2.5/dune2-0.1.0.0-4fHvUXi5eXiDKvlX16Dp3W"
 dynlibdir  = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/lib/x86_64-osx-ghc-9.2.5"
 datadir    = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/share/x86_64-osx-ghc-9.2.5/dune2-0.1.0.0"
 libexecdir = "/Users/shuhan/Sorbonne/S2/PAF/dune2/.stack-work/install/x86_64-osx/456e21daf7a449f0a32c69758262dbfffe2a468f863622ff95d3d03d53ff45ce/9.2.5/libexec/x86_64-osx-ghc-9.2.5/dune2-0.1.0.0"

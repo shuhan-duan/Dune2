@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
-
 module TextureMap where
 
 import Control.Monad

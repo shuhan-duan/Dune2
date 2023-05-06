@@ -1,6 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 module Main where
 
 import Control.Monad (unless,forM_,foldM)
@@ -25,6 +24,10 @@ import Common
 import TextureMap
 import SpriteMap
 import Batiment
+import Model
+import SDL.Font 
+import qualified SDL.Font as Font
+import qualified Data.Text as T
 
 
 -- Define the colors for each terrain type.
@@ -88,33 +91,60 @@ loadBatiment renderer  (tmap, smap) batiment = do
   
   return (tmap', smap')
 
-getFilePathForUnite :: UniteType -> String
-getFilePathForUnite (Collecteur _) = "assets/collecteur.png"
-getFilePathForUnite Combatant = "assets/combatant.png"
 
-getFilePathForBatiment :: BatimentType -> String
-getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
-getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
-getFilePathForBatiment Usine = "assets/usine.png"
-getFilePathForBatiment Centrale = "assets/centrale.png"
+drawInfoAndMenu :: Renderer -> GameState -> Font -> IO ()
+drawInfoAndMenu renderer gameState font = do
+  -- Draw the info area background
+  let infoArea = SDL.Rectangle (SDL.P (SDL.V2 640 0)) (SDL.V2 200 200)
+  SDL.rendererDrawColor renderer SDL.$= V4 200 200 200 255
+  SDL.fillRect renderer (Just infoArea)
 
+  -- Draw the menu area background
+  let menuArea = SDL.Rectangle (SDL.P (SDL.V2 640 200)) (SDL.V2 200 280)
+  SDL.rendererDrawColor renderer SDL.$= V4 150 150 150 255
+  SDL.fillRect renderer (Just menuArea)
 
-appLoop :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO ()
-appLoop renderer tmap smap env = do
+  -- Draw the text for the active player and their credit balance
+  let activePlayer = "Player: " ++ (show $ currentPlayer gameState)
+  let creditBalance = "Credits: " ++ (show $ playerCredits gameState)
+
+  let textColor = V4 0 0 0 255 :: V4 Word8
+  textSurface1 <- Font.solid font textColor (T.pack activePlayer)
+  textTexture1 <- SDL.createTextureFromSurface renderer textSurface1
+  SDL.freeSurface textSurface1
+
+  textSurface2 <- Font.solid font textColor (T.pack creditBalance)
+  textTexture2 <- SDL.createTextureFromSurface renderer textSurface2
+  SDL.freeSurface textSurface2
+
+  let srcRect = SDL.Rectangle (SDL.P (SDL.V2 0 0)) (SDL.V2 200 20)
+  let dstRect1 = SDL.Rectangle (SDL.P (SDL.V2 650 10)) (SDL.V2 200 20)
+  let dstRect2 = SDL.Rectangle (SDL.P (SDL.V2 650 30)) (SDL.V2 200 20)
+
+  SDL.copy renderer textTexture1 (Just srcRect) (Just dstRect1)
+  SDL.copy renderer textTexture2 (Just srcRect) (Just dstRect2)
+
+  SDL.destroyTexture textTexture1
+  SDL.destroyTexture textTexture2
+
+appLoop :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
+appLoop renderer tmap smap gameState font = do
+  let env = envi gameState
   events <- pollEvents
   let quit = any isQuitEvent events
   unless quit $ do
     clear renderer
-    drawEnv renderer tmap smap env
+    drawEnv renderer tmap smap gameState font
     present renderer
-    appLoop renderer tmap smap env
+    appLoop renderer tmap smap gameState font
   where
     isQuitEvent e = case eventPayload e of
       WindowClosedEvent{} -> True
       _                   -> False
 
-drawEnv :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO ()
-drawEnv renderer tmap smap env = do
+drawEnv :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
+drawEnv renderer tmap smap gameState font = do
+  let env = envi gameState 
   -- Draw the map
   drawMap renderer (ecarte env) 32 32
 
@@ -138,19 +168,24 @@ drawEnv renderer tmap smap env = do
     let sprite = S.moveTo (SM.fetchSprite spriteId smap) screenPosX screenPosY
     S.displaySprite renderer tmap sprite
 
+  drawInfoAndMenu renderer gameState font
+
 
 
 main :: IO ()
 main = do
-  SDL.initialize [SDL.InitVideo]
+  initializeAll
+  SDL.Font.initialize
+  font <- Font.load "assets/Freedom-10eM.ttf" 16
   gen <- newStdGen
   let rows = 20
   let cols = 20
   let tileSize = 32
+  let infoMenuWidth = 200
   let myMap = generateRandomMap rows cols gen
-  let windowSize = SDL.V2 (fromIntegral (cols * tileSize)) (fromIntegral (rows * tileSize))
+  let windowSize = SDL.V2 (fromIntegral (cols * tileSize + infoMenuWidth)) (fromIntegral (rows * tileSize))
   let windowConfig = SDL.defaultWindow { SDL.windowInitialSize = windowSize }
-  window <- SDL.createWindow "Duel 2" windowConfig
+  window <- SDL.createWindow (T.pack "Duel 2") windowConfig
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   
   -- Initialize empty TextureMap and SpriteMap
@@ -164,15 +199,16 @@ main = do
 
   -- Create an initial Environnement using creerEnvironnement
   let env = creerEnvironnement myMap initialPositions
-  --putStrLn $ "Initial batiments: " ++ show (batiments env)
-
+  let gameState = initGameState env
+  
   -- Load entities into the TextureMap and SpriteMap
   (tmap1, smap2) <- loadEntite renderer tmap smap env
   
   -- Run the app loop with the updated TextureMap and SpriteMap
-  appLoop renderer tmap1 smap2 env
+  appLoop renderer tmap1 smap2 gameState font
 
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
+  SDL.Font.quit
   SDL.quit
 

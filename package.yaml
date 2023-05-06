@@ -21,12 +21,17 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- text
 - containers
-- random
 - linear
 - sdl2
+- sdl2-ttf
+- text
+- random
+- mtl
+- ansi-terminal
 - hspec
+- QuickCheck
+
 
 ghc-options:
 - -Wall

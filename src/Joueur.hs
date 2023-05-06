@@ -6,6 +6,7 @@ import qualified Data.Map as Map
 import Data.Map (keys)
 import qualified Data.Map as M
 import qualified Data.List
+import Data.List (find)
 
 jcentrales :: Joueur -> [BatId]
 jcentrales joueur = [bid | (bid, batiment) <- Map.toList (jbatiments joueur), btype batiment == Centrale]
@@ -40,5 +41,6 @@ joueurProprioBatiment env bat =
   let myjid = bproprio bat
       js = joueurs env
   in Data.List.find (\j -> myjid == jid j) js
+
 
 
