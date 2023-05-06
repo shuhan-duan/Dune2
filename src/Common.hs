@@ -77,7 +77,7 @@ data Environnement = Environnement{
                 ecarte :: Carte,
                 unites :: Map UniteId Unite ,
                 batiments :: Map BatId Batiment
-                }
+                }deriving (Show, Eq)
 
 entiteCoord :: Entite -> Coord
 entiteCoord (Left batiment) = bcoord batiment

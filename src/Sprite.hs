@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Sprite where
 
-import Control.Monad.IO.Class (MonadIO)
 
 import Foreign.C.Types (CInt)
 
@@ -10,13 +9,12 @@ import qualified Data.Sequence as Seq
 
 import SDL.Vect (V2 (..), Point (..))
 
-import SDL.Video.Renderer (Renderer, Texture, Rectangle (..))
+import SDL.Video.Renderer (Renderer, Rectangle (..))
 import qualified SDL.Video.Renderer as R
 
 import TextureMap (TextureMap, TextureId)
 import qualified TextureMap as TM
 
-import qualified Debug.Trace as T
 
 
 type Area = Rectangle CInt
@@ -36,7 +34,7 @@ data Sprite =
 
 -- | création d'un lutin "vide"
 createEmptySprite :: Sprite
-createEmptySprite = Sprite Seq.empty 0 (mkArea 0 0 0 0) 
+createEmptySprite = Sprite Seq.empty 0 (mkArea 0 0 0 0)
 
 -- | ajouter une image à un lutin
 addImage :: Sprite -> Image -> Sprite
@@ -45,8 +43,8 @@ addImage sp@(Sprite { images=is }) img = sp { images = is :|> img }
 -- | changer l'image d'un lutin  (par son numéro)
 changeImage :: Sprite -> Int -> Sprite
 changeImage sp@(Sprite { images = imgs }) new
-  | Seq.null imgs = error $ "Cannot change sprite image, no image in sprite"
-  | (new < 0) || (new > Seq.length imgs) = error $ "Cannot change sprite image, bad index: " <> (show new)
+  | Seq.null imgs = error "Cannot change sprite image, no image in sprite"
+  | new < 0 || new > Seq.length imgs = error $ "Cannot change sprite image, bad index: " <> show new
   | otherwise = sp { current= new }
 
 -- | cycler l'image d'un lutin
@@ -101,4 +99,3 @@ position sprite = let (Rectangle (P pos) _) = destArea sprite
 size :: Sprite -> V2 CInt
 size sprite = let (Rectangle _ wh) = destArea sprite
                   in wh
-                  

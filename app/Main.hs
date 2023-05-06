@@ -1,118 +1,178 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
+
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Main where
 
-import Control.Monad (unless,when)
-import Control.Concurrent (threadDelay)
-
-import Data.Maybe (listToMaybe)
-
-import Data.Set (Set)
-import qualified Data.Set as Set
-
-import Data.List (foldl')
+import Control.Monad (unless,forM_,foldM)
 
 import Foreign.C.Types (CInt (..) )
 
 import SDL
-import SDL.Time (time, delay)
-import Linear (V4(..))
 
-import TextureMap (TextureMap, TextureId (..))
 import qualified TextureMap as TM
 
-import Sprite (Sprite)
 import qualified Sprite as S
 
-import SpriteMap (SpriteMap, SpriteId (..))
 import qualified SpriteMap as SM
 
 --import Keyboard (Keyboard)
-import Keyboard (Keyboard, MouseState)
 
-import qualified Keyboard as K
+import Carte
+import Data.Word (Word8)
+import qualified Data.Map as Map
+import System.Random (newStdGen)
+import Common
+import TextureMap
+import SpriteMap
+import Batiment
 
 
-import qualified Debug.Trace as T
+-- Define the colors for each terrain type.
+herbeColor :: V4 Word8
+herbeColor = V4 0 255 0 255  -- Green
 
-import Model (GameState)
-import qualified Model as M
+ressourceColor :: V4 Word8
+ressourceColor = V4 205 133 63 255  --Earth color
 
-loadBackground :: Renderer-> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
-loadBackground rdr path tmap smap = do
-  tmap' <- TM.loadTexture rdr path (TextureId "background") tmap
-  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId "background") (S.mkArea 0 0 640 480)
-  let smap' = SM.addSprite (SpriteId "background") sprite smap
+eauColor :: V4 Word8
+eauColor = V4 0 191 255 255
+
+-- Draw the terrain given its type and position.
+drawTerrain :: SDL.Renderer -> Terrain -> SDL.Rectangle CInt -> IO ()
+drawTerrain renderer terrain rect = do
+  let color = case terrain of
+        Herbe -> herbeColor
+        Ressource _ -> ressourceColor
+        Eau -> eauColor
+  SDL.rendererDrawColor renderer SDL.$= color
+  SDL.fillRect renderer (Just rect)
+
+drawMap :: SDL.Renderer -> Carte -> Int -> Int -> IO ()
+drawMap renderer (Carte m) tileWidth tileHeight = do
+  let coords = Map.keys m
+  forM_ coords $ \coord@(C x y) -> do
+    let terrain = m Map.! coord
+    let rect = SDL.Rectangle (SDL.P (SDL.V2 (fromIntegral (x * tileWidth)) (fromIntegral (y * tileHeight)))) (SDL.V2 (fromIntegral tileWidth) (fromIntegral tileHeight))
+    drawTerrain renderer terrain rect
+
+loadEntite :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO (TextureMap, SpriteMap)
+loadEntite renderer  tmap smap env = do
+  let unitesList = Map.elems (unites env)
+      batimentsList = Map.elems (batiments env)
+
+  (tmap', smap') <- foldM (loadUnite renderer ) (tmap, smap) unitesList
+  foldM (loadBatiment renderer ) (tmap', smap') batimentsList
+
+loadUnite :: Renderer -> (TextureMap, SpriteMap) -> Unite -> IO (TextureMap, SpriteMap)
+loadUnite renderer  (tmap, smap) unite = do
+  let textureId = getTextureIdForUnite unite
+      spriteId = getSpriteIdForUnite unite
+      filePath = getFilePathForUnite (utype unite)
+
+  tmap' <- TM.loadTexture renderer filePath textureId tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 100 100)
+  let smap' = SM.addSprite spriteId sprite smap
+
   return (tmap', smap')
 
-loadPerso :: Renderer-> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
-loadPerso rdr path tmap smap = do
-  tmap' <- TM.loadTexture rdr path (TextureId "perso") tmap
-  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId "perso") (S.mkArea 0 0 100 100)
-  let smap' = SM.addSprite (SpriteId "perso") sprite smap
+loadBatiment :: Renderer  -> (TextureMap, SpriteMap) -> Batiment -> IO (TextureMap, SpriteMap)
+loadBatiment renderer  (tmap, smap) batiment = do
+  let textureId = getTextureIdForBatiment batiment
+      spriteId = getSpriteIdForBatiment batiment
+      filePath = getFilePathForBatiment (btype batiment)
+
+  tmap' <- TM.loadTexture renderer filePath textureId tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 100 100)
+  let smap' = SM.addSprite spriteId sprite smap
+
+  
   return (tmap', smap')
+
+getFilePathForUnite :: UniteType -> String
+getFilePathForUnite (Collecteur _) = "assets/collecteur.png"
+getFilePathForUnite Combatant = "assets/combatant.png"
+
+getFilePathForBatiment :: BatimentType -> String
+getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
+getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
+getFilePathForBatiment Usine = "assets/usine.png"
+getFilePathForBatiment Centrale = "assets/centrale.png"
+
+
+appLoop :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO ()
+appLoop renderer tmap smap env = do
+  events <- pollEvents
+  let quit = any isQuitEvent events
+  unless quit $ do
+    clear renderer
+    drawEnv renderer tmap smap env
+    present renderer
+    appLoop renderer tmap smap env
+  where
+    isQuitEvent e = case eventPayload e of
+      WindowClosedEvent{} -> True
+      _                   -> False
+
+drawEnv :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO ()
+drawEnv renderer tmap smap env = do
+  -- Draw the map
+  drawMap renderer (ecarte env) 32 32
+
+  -- Draw units
+  forM_ (Map.elems (unites env)) $ \unite -> do
+    let spriteId = getSpriteIdForUnite unite
+    let (C x y) = ucoord unite
+    let screenPosX = fromIntegral x * 32
+    let screenPosY = fromIntegral y * 32
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) screenPosX screenPosY
+    S.displaySprite renderer tmap sprite
+
+  -- Draw buildings
+  forM_ (Map.elems (batiments env)) $ \batiment -> do
+    
+    let spriteId = getSpriteIdForBatiment batiment
+    let (C x y) = bcoord batiment
+    let screenPosX = fromIntegral x * 32
+    let screenPosY = fromIntegral y * 32
+    
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) screenPosX screenPosY
+    S.displaySprite renderer tmap sprite
+
+
 
 main :: IO ()
 main = do
-  initializeAll
-  window <- createWindow "Dune 2" $ defaultWindow { windowInitialSize = V2 640 480 }
-  renderer <- createRenderer window (-1) defaultRenderer
-  -- chargement de l'image du fond
-  (tmap, smap) <- loadBackground renderer "assets/background.bmp" TM.createTextureMap SM.createSpriteMap
-  -- chargement du personnage
-  (tmap', smap') <- loadPerso renderer "assets/perso.bmp" tmap smap
-  -- initialisation de l'état du jeu
-  let gameState = M.initGameState
-  -- initialisation de l'état du clavier
-  let kbd = K.createKeyboard
-  let mouseState = K.createMouseState
-
-  -- lancement de la gameLoop
-  --gameLoop 60 renderer tmap' smap' kbd gameState
-  gameLoop 60 renderer tmap' smap' (kbd, mouseState) gameState
-
-
---gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> GameState -> IO ()
---gameLoop frameRate renderer tmap smap kbd gameState = do
-gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> (Keyboard, MouseState) -> GameState -> IO ()
-gameLoop frameRate renderer tmap smap (kbd, mouseState) gameState = do
-  startTime <- time
-  events <- pollEvents
-  let payloads = map eventPayload events
-  --let kbd' = K.handleEvents events kbd
-  let (kbd', mouseState') = K.handleEvents events (kbd, mouseState)
-
-  let quit = any (\case WindowClosedEvent{} -> True; _ -> False) payloads || K.keypressed KeycodeEscape kbd'
-  clear renderer
-  --- display background
-  S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap)
-  --- display perso 
-  S.displaySprite renderer tmap (S.moveTo (SM.fetchSprite (SpriteId "perso") smap)
-                                 (fromIntegral (M.persoX gameState))
-                                 (fromIntegral (M.persoY gameState)))
-  ---
-  present renderer
-  endTime <- time
-  let refreshTime = endTime - startTime
-  let delayTime = floor (((1.0 / frameRate) - refreshTime) * 1000)
-  threadDelay $ delayTime * 1000 -- microseconds
-  endTime <- time
-  let deltaTime = endTime - startTime
-  -- putStrLn $ "Delta time: " <> (show (deltaTime * 1000)) <> " (ms)"
-  -- putStrLn $ "Frame rate: " <> (show (1 / deltaTime)) <> " (frame/s)"
-  --- update du game state
-  let gameState' = M.gameStep gameState kbd' deltaTime
-  let sprite = S.moveTo (SM.fetchSprite (SpriteId "perso") smap) (fromIntegral (M.persoX gameState')) (fromIntegral (M.persoY gameState'))
-  let V2 px py = S.position sprite
-  let V2 w h = S.size sprite
-  let inX = K.mouseX mouseState' >= fromIntegral px && K.mouseX mouseState' <= fromIntegral (px + w)
-  let inY = K.mouseY mouseState' >= fromIntegral py && K.mouseY mouseState' <= fromIntegral (py + h)
-  let hit = K.leftButtonPressed mouseState mouseState' && inX && inY
-
-  when hit (putStrLn "Touché !")
-  ---
+  SDL.initialize [SDL.InitVideo]
+  gen <- newStdGen
+  let rows = 20
+  let cols = 20
+  let tileSize = 32
+  let myMap = generateRandomMap rows cols gen
+  let windowSize = SDL.V2 (fromIntegral (cols * tileSize)) (fromIntegral (rows * tileSize))
+  let windowConfig = SDL.defaultWindow { SDL.windowInitialSize = windowSize }
+  window <- SDL.createWindow "Duel 2" windowConfig
+  renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   
-  --unless quit (gameLoop frameRate renderer tmap smap kbd' gameState')
-  unless quit (gameLoop frameRate renderer tmap smap (kbd', mouseState') gameState')
+  -- Initialize empty TextureMap and SpriteMap
+  let tmap = TM.createTextureMap 
+  let smap = SM.createSpriteMap
   
+  -- Generate initial player positions
+  let numPlayers = 4
+  let initialPositions = generateInitialPlayerPositions numPlayers myMap gen
+  --let initialPositions = [(C 5 5), (C 10 10), (C 20 20), (C 25 25)]
+
+  -- Create an initial Environnement using creerEnvironnement
+  let env = creerEnvironnement myMap initialPositions
+  --putStrLn $ "Initial batiments: " ++ show (batiments env)
+
+  -- Load entities into the TextureMap and SpriteMap
+  (tmap1, smap2) <- loadEntite renderer tmap smap env
+  
+  -- Run the app loop with the updated TextureMap and SpriteMap
+  appLoop renderer tmap1 smap2 env
+
+  SDL.destroyRenderer renderer
+  SDL.destroyWindow window
+  SDL.quit
 

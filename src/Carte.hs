@@ -3,6 +3,8 @@ module Carte where
 
 import qualified Data.Map.Strict as M
 import System.Random
+import Data.List (nub)
+import qualified Data.Map as Map
 
 data Coord = C {cx :: Int, cy :: Int}
     deriving (Show, Eq)
@@ -110,6 +112,12 @@ isEau _ = False
 setCaseVide :: Coord -> Carte -> Carte
 setCaseVide coord (Carte c) = Carte $ M.insert coord Herbe c
 
+dimension :: Carte -> (Int, Int)
+dimension (Carte m) = let coords = Map.keys m
+                          xs = map (\(C x _) -> x) coords
+                          ys = map (\(C _ y) -> y) coords
+                      in (maximum xs + 1, maximum ys + 1)
+
 generateRandomMap :: Int -> Int -> StdGen -> Carte
 generateRandomMap width height gen =
   let coords = [C x y | x <- [0..width - 1], y <- [0..height - 1]]
@@ -120,3 +128,45 @@ generateRandomMap width height gen =
         _ -> Eau
       terrains = map terrainFromInt randomTerrains
   in Carte . M.fromList $ zip coords terrains
+
+generateInitialPlayerPositions :: Int -> Carte -> StdGen -> [Coord]
+generateInitialPlayerPositions numPlayers carte gen =
+  let (cols, rows) = dimension carte
+      minCoord = 2
+      maxCoordX = cols - 1 - minCoord
+      maxCoordY = rows - 1 - minCoord
+      edgePositions = [(x, y) | x <- [minCoord, maxCoordX], y <- [minCoord .. maxCoordY]] ++
+                      [(x, y) | x <- [minCoord .. maxCoordX], y <- [minCoord, maxCoordY]]
+      distanceThreshold = 2.0
+      maxAttempts = 1000
+      randomPositions = randomRs (0, length edgePositions - 1) gen
+      generateCoord pairs attempts remainingRandomPositions
+        | length pairs == numPlayers = pairs
+        | attempts <= 0 = error "Unable to generate initial player positions."
+        | null remainingRandomPositions = error "Ran out of random positions."
+        | otherwise =
+            let idx:rest = remainingRandomPositions
+                (x, y) = edgePositions !! idx
+                c = C x y
+            in if isConstructible c carte && isFarEnough distanceThreshold c pairs
+                  then generateCoord (c:pairs) (attempts - 1) rest
+                  else generateCoord pairs (attempts - 1) rest
+  in nub $ generateCoord [] maxAttempts randomPositions
+
+
+interleave :: [a] -> [a] -> [a]
+interleave (x:xs) (y:ys) = x : y : interleave xs ys
+interleave xs [] = xs
+interleave [] ys = ys
+
+
+
+euclideanDistance :: Coord -> Coord -> Float
+euclideanDistance (C x1 y1) (C x2 y2) =
+  let dx = fromIntegral (x1 - x2)
+      dy = fromIntegral (y1 - y2)
+  in sqrt (dx * dx + dy * dy)
+
+isFarEnough :: Float -> Coord -> [Coord] -> Bool
+isFarEnough threshold newCoord existingCoords =
+  all (\coord -> euclideanDistance newCoord coord > threshold) existingCoords

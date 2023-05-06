@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module SpriteMap where
 
 import Data.Map.Strict (Map)
@@ -5,6 +6,7 @@ import qualified Data.Map as M
 
 import Sprite (Sprite)
 import qualified Sprite as S
+import Common
 
 newtype SpriteId = SpriteId String
   deriving (Eq, Ord)
@@ -40,3 +42,12 @@ removeSprite sid smap = case M.lookup sid smap of
                           Nothing -> error $ "removeSprite - No such sprite '" <> (show sid) <> "' in sprite map."
                           Just _ -> M.delete sid smap
 
+getSpriteIdForBatiment :: Batiment -> SpriteId
+getSpriteIdForBatiment (Batiment {bid = batId, btype = QuartierGeneral}) = SpriteId ("quartier_general_" ++ show batId)
+getSpriteIdForBatiment (Batiment {bid = batId, btype = Raffinerie}) = SpriteId ("raffinerie_" ++ show batId)
+getSpriteIdForBatiment (Batiment {bid = batId, btype = Usine}) = SpriteId ("usine_" ++ show batId)
+getSpriteIdForBatiment (Batiment {bid = batId, btype = Centrale}) = SpriteId ("centrale_" ++ show batId)
+
+getSpriteIdForUnite :: Unite -> SpriteId
+getSpriteIdForUnite (Unite {uid = unitId, utype = Collecteur _}) = SpriteId ("collecteur_" ++ show unitId)
+getSpriteIdForUnite (Unite {uid = unitId, utype = Combatant}) = SpriteId ("combatant_" ++ show unitId)

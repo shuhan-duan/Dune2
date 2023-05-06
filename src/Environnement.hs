@@ -114,7 +114,7 @@ getBatiment:: BatId->Environnement->Batiment
 getBatiment b env=
     let batiment = M.lookup b (batiments env)
     in case batiment of
-        Just batiment'-> unite'
+        Just batiment'-> batiment'
         Nothing -> error "undifined"
 
 isMissingBat::Batiment->Environnement->Bool
@@ -126,7 +126,7 @@ isMissingBat batiment env =
 
 isMissingUnit::Unite->Environnement->Bool
 isMissingUnit unite env =
-   let verif = M.lookup (uid batiment) (unites env)
+   let verif = M.lookup (uid unite) (unites env)
    in case verif of 
       Just _ -> True
       Nothing -> False

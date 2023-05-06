@@ -12,6 +12,7 @@ import Environnement
 import Joueur
 import Data.Map
 import Data.Maybe
+import Debug.Trace
 
 -- Returns the cost (in credits) of a given building type.
 batimentTypeCost :: BatimentType -> Int
@@ -40,7 +41,7 @@ construireBatiment joueur env btype coord
   | not (isValidCoord (ecarte env) coord) || not (isConstructible coord (ecarte env)) = env
   | jcredits joueur < batimentTypeCost btype = env
   | otherwise = let
-             newBatId = BatId (M.size (jbatiments joueur) + 1)
+             newBatId = BatId (M.size (batiments env) + 1)
              newBatiment = Batiment { bid = newBatId
                                     , btype = btype
                                     , bproprio = jid joueur
@@ -100,7 +101,6 @@ terminerProduction j env bat =
         Nothing -> env
     _ -> env
 
--- creates a new Environnement given a Carte and a list of Coord.
 creerEnvironnement :: Carte -> [Coord] -> Environnement
 creerEnvironnement carte qgCoords =
   let joueurIds = [1..length qgCoords]
@@ -117,8 +117,10 @@ creerEnvironnement carte qgCoords =
                                  , unites = M.empty
                                  , batiments = M.empty
                                  }
-  in Prelude.foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
+      updatedEnv = Prelude.foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
            initialEnv (zip initialJoueurs qgCoords)
+  in trace ("Initial batiments: " ++ show (batiments updatedEnv)) updatedEnv
+
 
 executerCommande :: Commande -> Environnement -> Environnement
 executerCommande cmd env =
