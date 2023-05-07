@@ -49,5 +49,5 @@ getSpriteIdForBatiment (Batiment {bid = batId, btype = Usine}) = SpriteId ("usin
 getSpriteIdForBatiment (Batiment {bid = batId, btype = Centrale}) = SpriteId ("centrale_" ++ show batId)
 
 getSpriteIdForUnite :: Unite -> SpriteId
-getSpriteIdForUnite (Unite {uid = unitId, utype = Collecteur _}) = SpriteId ("collecteur_" ++ show unitId)
+getSpriteIdForUnite (Unite {uid = unitId, utype = Collecteur}) = SpriteId ("collecteur_" ++ show unitId)
 getSpriteIdForUnite (Unite {uid = unitId, utype = Combatant}) = SpriteId ("combatant_" ++ show unitId)

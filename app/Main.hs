@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 module Main where
 
-import Control.Monad (unless,forM_,foldM)
+import Control.Monad (unless,forM_,foldM,when)
 
 import Foreign.C.Types (CInt (..) )
 
@@ -128,30 +128,35 @@ loadBatiment renderer  (tmap, smap) batiment = do
 
 getInfoAreaData :: GameState -> (T.Text, T.Text, T.Text)
 getInfoAreaData gameState =
-  let health = case selected gameState of
-                 Just entityId -> getEntityHealth gameState entityId
-                 Nothing       -> 0
+  case selected gameState of
+    Just (Left entityId) ->
+      let health = getEntityHealth gameState entityId
 
-      currentPlayer = getEntiteJoueur gameState <$> selected gameState
-      playerCredits = maybe 0 (getJoueurCredit gameState) currentPlayer
-      currentPlayerId = case currentPlayer of 
-                          Just jid -> unJoueurId jid
-                          Nothing  -> 0
-      
-      activePlayerText = T.concat [T.pack "Player: ", T.pack (show currentPlayerId)]
-      creditBalanceText = T.concat [T.pack "Credits: ", T.pack (show playerCredits)]
-      healthText = T.concat [T.pack "Points de vie: ", T.pack (show health)]
+          currentPlayer = getEntiteJoueur gameState entityId
+          playerCredits = getJoueurCredit gameState currentPlayer
+          currentPlayerId = unJoueurId currentPlayer
 
-  in (activePlayerText, creditBalanceText, healthText)
+          activePlayerText = T.concat [T.pack "Player: ", T.pack (show currentPlayerId)]
+          creditBalanceText = T.concat [T.pack "Credits: ", T.pack (show playerCredits)]
+          healthText = T.concat [T.pack "Points de vie: ", T.pack (show health)]
+
+      in (activePlayerText, creditBalanceText, healthText)
+
+    Just (Right terrain) ->
+      let terrainType = T.pack $ show terrain
+          resourceAmount = case terrain of
+                            Ressource n -> T.pack (show n)
+                            _           -> T.pack ""
+
+          terrainText = T.concat [T.pack "Terrain: ", terrainType]
+          resourceText = if not (T.null resourceAmount)
+                         then T.concat [T.pack "Ressource: ", resourceAmount]
+                         else T.pack ""
+
+      in (terrainText, resourceText, T.pack "")
+
+    Nothing -> (T.pack "", T.pack "", T.pack "")
   
-drawText :: Renderer -> Font -> V4 Word8 -> T.Text -> SDL.Rectangle CInt -> IO ()
-drawText renderer font textColor text rect = do
-  textSurface <- Font.solid font textColor text
-  textTexture <- SDL.createTextureFromSurface renderer textSurface
-  SDL.freeSurface textSurface
-  SDL.copy renderer textTexture Nothing (Just rect)
-  SDL.destroyTexture textTexture
-
 drawInfoAndMenu :: Renderer -> GameState -> Font -> IO ()
 drawInfoAndMenu renderer gameState font = do
   -- Draw the info area background
@@ -168,10 +173,19 @@ drawInfoAndMenu renderer gameState font = do
 
   let textColor = V4 0 0 0 255 :: V4 Word8
 
-  drawText renderer font textColor activePlayer (SDL.Rectangle (SDL.P (SDL.V2 650 30)) (SDL.V2 150 20))
-  drawText renderer font textColor creditBalance (SDL.Rectangle (SDL.P (SDL.V2 650 70)) (SDL.V2 150 20))
-  drawText renderer font textColor pointDeVie (SDL.Rectangle (SDL.P (SDL.V2 650 110)) (SDL.V2 150 20))
+  when (not $ T.null activePlayer) $
+    drawText renderer font textColor activePlayer (SDL.Rectangle (SDL.P (SDL.V2 650 30)) (SDL.V2 150 20))
 
+  when (not $ T.null creditBalance) $
+    drawText renderer font textColor creditBalance (SDL.Rectangle (SDL.P (SDL.V2 650 70)) (SDL.V2 150 20))
+
+  when (not $ T.null pointDeVie) $
+    drawText renderer font textColor pointDeVie (SDL.Rectangle (SDL.P (SDL.V2 650 110)) (SDL.V2 150 20))
+
+  case selected gameState of
+    Just (Left entityId) -> drawMenuItems renderer font textColor gameState entityId
+    Just (Right _) -> return ()  -- Ignore the Terrain case
+    Nothing -> return ()
 
 appLoop :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> Keyboard -> MouseState -> IO ()
 appLoop renderer tmap smap gameState font kbd mouseState = do
@@ -188,7 +202,7 @@ appLoop renderer tmap smap gameState font kbd mouseState = do
     -- let deltaTime = endTime - startTime
     let deltaTime = 2
     let gameState' = gameStep gameState kbd' mouseState' deltaTime
-    -- get update entite
+    
 
     appLoop renderer tmap smap gameState' font kbd' mouseState'
   where
@@ -218,7 +232,6 @@ drawEnv renderer tmap smap gameState font = do
 
   drawInfoAndMenu renderer gameState font
 
-  
 
 main :: IO ()
 main = do
@@ -262,4 +275,27 @@ main = do
   SDL.destroyWindow window
   SDL.Font.quit
   SDL.quit
+
+drawText :: Renderer -> Font -> V4 Word8 -> T.Text -> SDL.Rectangle CInt -> IO ()
+drawText renderer font textColor text rect = do
+  textSurface <- Font.solid font textColor text
+  textTexture <- SDL.createTextureFromSurface renderer textSurface
+  SDL.freeSurface textSurface
+  SDL.copy renderer textTexture Nothing (Just rect)
+  SDL.destroyTexture textTexture
+
+drawMenuItems :: Renderer -> Font -> V4 Word8 -> GameState -> EntiteId -> IO ()
+drawMenuItems renderer font textColor gameState entityId = do
+  let menuItems = getMenuItemsForEntity gameState entityId
+  let menuPositions = zipWith (\item index -> SDL.Rectangle (SDL.P (SDL.V2 650 (200 + 30 * index))) (SDL.V2 150 20)) menuItems [0..]
+  forM_ (zip menuItems menuPositions) $ \(menuItem, menuPosition) -> do
+    drawText renderer font textColor (menuItemToText menuItem) menuPosition
+
+menuItemToText :: MenuItem -> T.Text
+menuItemToText menuItem = case menuItem of
+  BuildBuilding batType -> T.pack "Build " <> T.pack (show batType)
+  ProduceUnit unitType -> T.pack "Produce " <> T.pack (show unitType)
+  CollectResources -> T.pack "Collect Resources"
+  Attack -> T.pack "Attack"
+  Patrol -> T.pack "Patrol"
 

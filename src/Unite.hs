@@ -44,15 +44,8 @@ remplirCuve cu v =
         Just $ changeCuve cu q
                     else Nothing
 
-capaciteCuve :: UniteType -> Int
-capaciteCuve (Collecteur t) = case t of
-                                EmptyTank c -> c
-                                FullTank c -> c
-                                Tank c _ -> c
-capaciteCuve Combatant = 0 -- Les combattants ne peuvent pas collecter de ressources
-
 isCollecteur :: Unite -> Bool
-isCollecteur (Unite {utype = Collecteur _}) = True
+isCollecteur (Unite {utype = Collecteur}) = True
 isCollecteur _ = False
 
 isCombattant :: Unite -> Bool
@@ -66,22 +59,22 @@ isFull _ = False
 
 -- Returns the capacity of the cuve of a given unite type.
 uniteTypeCapaciteCuve :: UniteType -> Int
-uniteTypeCapaciteCuve (Collecteur tank) = capacite tank
+uniteTypeCapaciteCuve Collecteur = 30
 uniteTypeCapaciteCuve Combatant = 0 -- Combatants do not have tanks
 
 -- Returns the cost (in credits) of a given unite type.
 uniteTypeCost :: UniteType -> Int
-uniteTypeCost (Collecteur _) = 10
+uniteTypeCost Collecteur  = 10
 uniteTypeCost Combatant = 10
 
 -- Returns the product time of a given unite type.
 uniteTypeTempsProd :: UniteType -> Int
-uniteTypeTempsProd (Collecteur _)  = 20
+uniteTypeTempsProd Collecteur  = 20
 uniteTypeTempsProd Combatant = 15
 
 -- Returns the point of life  of a given unite type.
 uniteTypePointsVie :: UniteType -> Int
-uniteTypePointsVie (Collecteur _) = 100
+uniteTypePointsVie Collecteur  = 100
 uniteTypePointsVie Combatant = 50
 
 -- create new unite 
@@ -164,7 +157,8 @@ modifBut o u env =
 collecterRessource :: Unite -> Carte -> Environnement -> Environnement
 collecterRessource unite carte env =
   case utype unite of
-    Collecteur cuve -> -- The unit is a collector
+    Collecteur -> -- The unit is a collector
+      let cuve = fromJust(ucuve unite)in
       case getTerrain carte (ucoord unite) of
         Just (Ressource _) -> -- There is a resource at the unit's position
           let capaciteDisponible = capacite cuve - quantite cuve
@@ -177,15 +171,6 @@ collecterRessource unite carte env =
                Nothing -> env
         _ -> env -- No resource at the unit's position
     _ -> env -- The unit is not a collector
-
--- Recuperer cuve
-getcuve :: Unite -> Tank
-getcuve u =
-  case (utype u) of
-    Collecteur t -> t
-    _ -> error "is not collector"
-
-
 
 executeOrdreCollecte :: Unite -> Environnement -> Coord -> Environnement
 executeOrdreCollecte unite env targetCoord

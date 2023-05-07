@@ -74,7 +74,7 @@ data Tank = Tank Int Int
             |FullTank Int
                 deriving (Show,Eq)
 
-data UniteType = Collecteur Tank
+data UniteType = Collecteur
                 | Combatant deriving (Show, Eq)
 
 data Unite = Unite {
@@ -90,7 +90,7 @@ data Unite = Unite {
 } deriving (Show, Eq)
 
 getFilePathForUnite :: UniteType -> String
-getFilePathForUnite (Collecteur _) = "assets/collecteur.png"
+getFilePathForUnite Collecteur = "assets/collecteur.png"
 getFilePathForUnite Combatant = "assets/combatant.png"
 
 getFilePathForBatiment :: BatimentType -> String

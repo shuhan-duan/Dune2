@@ -68,5 +68,5 @@ getTextureIdForBatiment (Batiment {bid = batId, btype = Usine}) = TextureId ("us
 getTextureIdForBatiment (Batiment {bid = batId, btype = Centrale}) = TextureId ("centrale_" ++ show batId)
 
 getTextureIdForUnite :: Unite -> TextureId
-getTextureIdForUnite (Unite {uid = unitId, utype = Collecteur _}) = TextureId ("collecteur_" ++ show unitId)
+getTextureIdForUnite (Unite {uid = unitId, utype = Collecteur}) = TextureId ("collecteur_" ++ show unitId)
 getTextureIdForUnite (Unite {uid = unitId, utype = Combatant}) = TextureId ("combatant_" ++ show unitId)
