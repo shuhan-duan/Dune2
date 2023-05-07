@@ -6,6 +6,7 @@ import Joueur
 import Environnement
 import qualified Data.Map as M
 import Data.Maybe
+import Path
 
 prop_cuveInvariant :: Maybe Tank -> Bool
 prop_cuveInvariant Nothing = False
@@ -91,7 +92,6 @@ creerUnite utype joueur coord =
     utype = utype,
     uproprio = jid joueur,
     ucoord = coord,
-    udirection = Nord,
     upointsVie = uniteTypePointsVie utype,
     ucuve = initCuve (uniteTypeCapaciteCuve utype),
     uordres = [],
@@ -149,13 +149,11 @@ modifCoordNS u dir =
 
 deplacer :: Coord -> Unite -> Environnement -> Environnement
 deplacer coord unite env =
-  let updatedUnite = unite {ubut = Deplacer coord}
-      newUnite = case udirection updatedUnite of
-        Nord -> modifCoordNS updatedUnite Nord
-        Est -> modifCoordEO updatedUnite Est
-        Sud -> modifCoordNS updatedUnite Sud
-        Ouest -> modifCoordEO updatedUnite Ouest
+  let path = aStar env (ucoord unite) coord
+      newUnite = unite { upath = path }
   in updateUnite newUnite env
+
+
 
 modifBut :: Ordre -> Unite -> Environnement -> Environnement
 modifBut o u env =
@@ -198,6 +196,7 @@ executeOrdreCollecte unite env targetCoord
           let raffinerie = findRaffinerie env (uproprio unite) -- Find a raffinerie owned by the unit's owner
           in case raffinerie of
             Just raff -> deplacer (bcoord raff) unite env -- Move the collector to the raffinerie
+            -- todo : if is arrived , the raffinerie will change the resoure to credits
             Nothing -> env -- No raffinerie found
         else
           let carte = ecarte env

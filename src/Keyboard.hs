@@ -26,8 +26,9 @@ createMouseState :: MouseState
 createMouseState = MouseState False False 0 0
 
 
-handleEvent :: Event -> Keyboard -> Keyboard
-handleEvent event kbd =
+-- handle keyboard events for commands or selecting buildings/units with shortcut keys
+handleKeyboardEvent :: Event -> Keyboard -> Keyboard
+handleKeyboardEvent event kbd =
   case eventPayload event of
     KeyboardEvent keyboardEvent ->
       if keyboardEventKeyMotion keyboardEvent == Pressed
@@ -37,6 +38,7 @@ handleEvent event kbd =
            else kbd
     _ -> kbd
 
+-- handle mouse events for selecting buildings, units or clicking commands in the menu
 handleMouseEvent :: Event -> MouseState -> MouseState
 handleMouseEvent event mouseState =
   case eventPayload event of
@@ -51,28 +53,21 @@ handleMouseEvent event mouseState =
                          , mouseY = getComponentY pos
                          }
          else mouseState
+    MouseMotionEvent e ->
+      let P (V2 x y) = mouseMotionEventPos e
+          pos = V2 (fromIntegral x) (fromIntegral y) :: V2 Int
+      in mouseState { mouseX = getComponentX pos
+                    , mouseY = getComponentY pos
+                    }
     _ -> mouseState
 
-leftButtonPressed :: MouseState -> MouseState -> Bool
-leftButtonPressed oldState newState =
-  (not $ leftButton oldState) && leftButton newState
-
-
-getComponentX :: V2 Int -> Int
-getComponentX (V2 x _) = x
-
-getComponentY :: V2 Int -> Int
-getComponentY (V2 _ y) = y
-
--- | prise en compte des événements SDL2 pour mettre à jour l'état du clavier
---handleEvents :: [Event] -> Keyboard -> Keyboard
---handleEvents events kbd = foldl' (flip handleEvent) kbd events
-
+-- | prise en compte des événements SDL2 pour mettre à jour l'état du clavier et souris
 handleEvents :: [Event] -> (Keyboard, MouseState) -> (Keyboard, MouseState)
 handleEvents events (kbd, mouseState) =
-  let kbd' = foldl' (flip handleEvent) kbd events
+  let kbd' = foldl' (flip handleKeyboardEvent) kbd events
       mouseState' = foldl' (flip handleMouseEvent) mouseState events
   in (kbd', mouseState')
+
 
 -- | quelques noms de *keycode*
 keycodeName :: Keycode -> Char
@@ -108,3 +103,13 @@ keycodeName _ = '-'
 -- | actif sur le clavier.
 keypressed :: Keycode -> Keyboard -> Bool
 keypressed kc kbd = S.member kc kbd
+
+leftButtonPressed :: MouseState -> MouseState -> Bool
+leftButtonPressed oldState newState =
+  (not $ leftButton oldState) && leftButton newState
+
+getComponentX :: V2 Int -> Int
+getComponentX (V2 x _) = x
+
+getComponentY :: V2 Int -> Int
+getComponentY (V2 _ y) = y

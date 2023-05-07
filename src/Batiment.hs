@@ -142,19 +142,6 @@ executerCommande cmd env =
         Just u -> produireUnite env utype u
         Nothing -> env
 
-
-findJoueur :: JoueurId -> [Joueur] -> Maybe Joueur
-findJoueur _ [] = Nothing
-findJoueur id' (j:js)
-  | jid j == id' = Just j
-  | otherwise = findJoueur id' js
-
-findUsineForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
-findUsineForJoueur Nothing _ = Nothing
-findUsineForJoueur (Just joueur) batiments =
-  let usines = M.filter (\b -> btype b == Usine && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
-  in if M.null usines then Nothing else Just (snd (M.findMin usines))
-
 -- Calculate the total energy production and consumption of the player's building
 energieTotal :: Joueur -> Int
 energieTotal joueur = sum (Prelude.map benergie (M.elems (jbatiments joueur)))
@@ -193,3 +180,14 @@ terminerProductionForALL env =
                   ) accEnv (M.elems (jbatiments joueur))
         ) env (joueurs env)
 
+findUsineForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
+findUsineForJoueur Nothing _ = Nothing
+findUsineForJoueur (Just joueur) batiments =
+  let usines = M.filter (\b -> btype b == Usine && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
+  in if M.null usines then Nothing else Just (snd (M.findMin usines))       
+
+findRaffinerieForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
+findRaffinerieForJoueur Nothing _ = Nothing
+findRaffinerieForJoueur (Just joueur) batiments =
+  let raffs = M.filter (\b -> btype b == Raffinerie && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
+  in if M.null raffs then Nothing else Just (snd (M.findMin raffs))       

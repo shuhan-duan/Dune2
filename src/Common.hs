@@ -5,6 +5,9 @@ import Carte
 
 
 newtype JoueurId = JoueurId Int deriving (Show, Eq ,Ord)
+-- get Jid from JoueurId
+unJoueurId :: JoueurId -> Int
+unJoueurId (JoueurId n) = n
 
 newtype UniteId = UniteId Int deriving (Show, Eq ,Ord)
 -- get Uid from UniteId
@@ -37,6 +40,21 @@ data Batiment = Batiment { bid :: BatId
                             , btempsProd :: Maybe (Int, UniteType) -- ( temps restant,unité produite)
                             }deriving (Show, Eq)
 
+entiePos :: Entite -> (Int, Int)
+entiePos (Left batiment) = 
+  let (C x y) = bcoord batiment
+      screenPosX = fromIntegral x * 32
+      screenPosY = fromIntegral y * 32
+  in (screenPosX, screenPosY)
+entiePos (Right unite) = 
+  let (C x y) = ucoord unite
+      screenPosX = fromIntegral x * 32
+      screenPosY = fromIntegral y * 32
+  in (screenPosX, screenPosY)
+
+entiteCoord :: Entite -> Coord
+entiteCoord (Left batiment) = bcoord batiment
+entiteCoord (Right unite) = ucoord unite
 
 
 type Entite = Either Batiment Unite
@@ -64,29 +82,12 @@ data Unite = Unite {
     utype :: UniteType,
     uproprio :: JoueurId,
     ucoord :: Coord,
-    udirection :: Direction,
+    upath :: [Coord],
     upointsVie :: Int,
     ucuve :: Maybe Tank,
     uordres :: [Ordre],
     ubut :: Ordre
 } deriving (Show, Eq)
-
-
-data Environnement = Environnement{
-                joueurs :: [Joueur],
-                ecarte :: Carte,
-                unites :: Map UniteId Unite ,
-                batiments :: Map BatId Batiment
-                }deriving (Show, Eq)
-
-entiteCoord :: Entite -> Coord
-entiteCoord (Left batiment) = bcoord batiment
-entiteCoord (Right unite) = ucoord unite
-
-data Commande = DonnerOrdre UniteId Ordre
-              | Construire JoueurId BatimentType Coord
-              | Produire JoueurId UniteType
-              deriving (Show, Eq)
 
 getFilePathForUnite :: UniteType -> String
 getFilePathForUnite (Collecteur _) = "assets/collecteur.png"
@@ -97,3 +98,22 @@ getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
 getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
 getFilePathForBatiment Usine = "assets/usine.png"
 getFilePathForBatiment Centrale = "assets/centrale.png"
+
+data Environnement = Environnement{
+                joueurs :: [Joueur],
+                ecarte :: Carte,
+                unites :: Map UniteId Unite ,
+                batiments :: Map BatId Batiment
+                }deriving (Show, Eq)
+
+data Commande = DonnerOrdre UniteId Ordre
+              | Construire JoueurId BatimentType Coord
+              | Produire JoueurId UniteType
+              deriving (Show, Eq)
+
+findJoueur :: JoueurId -> [Joueur] -> Maybe Joueur
+findJoueur _ [] = Nothing
+findJoueur id' (j:js)
+  | jid j == id' = Just j
+  | otherwise = findJoueur id' js
+

@@ -9,25 +9,27 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/README.md:
   hash: a1a91b00a253decbad60099e6147f6926ff1999a672edebf042718be33800123
 /Users/shuhan/Sorbonne/S2/PAF/dune2/dune2.cabal:
-  hash: c5766309a646631022294896910b46e63fa1c9c81670e1579c0629e55500d907
+  hash: 6c6352b225d723278e049228f075b6fd48453a0cce88f3427f89607d1f989c1f
 /Users/shuhan/Sorbonne/S2/PAF/dune2/package.yaml:
   hash: 74b897980e38bdc5a6e2d062ccc55d1a1ba850001c0a51ed92609b741323fc80
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Batiment.hs:
-  hash: 4aaeceb76f06263014a92fc28fdbdd4c00ba8430eec6610919d388af685e93cf
+  hash: 613a8ae1ae695d235367ddbf6eca12ac1d4e5898ef5dcad1861d74b737ce466e
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Carte.hs:
   hash: 3febee6059a15a978d5adbc18c01864e75322888cc802488a56837a88eb2e751
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Common.hs:
-  hash: 17d9971662b91b9c7892d1c81f8ba9c87b442978b9f662584f6dcc8c51de4869
+  hash: 8ecf171e87e8a4352a0352abcf18e03f95451bb406b268b5153f540f47cf9792
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Environnement.hs:
   hash: b59c74f37d99d8f62038fc2850cd363a55e9b79e5cee390b959aad23d35911c7
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Joueur.hs:
   hash: bdc76cc490339d7d47a28efeaf694227298fc8b9760e37bb22e6883c94c7f65e
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Keyboard.hs:
-  hash: 4c183c52822b29025c17b14c021a728addbd984117b86c8e118af13f45c73d7a
+  hash: 5607fdcd3d1f9b5a7179680ec9c4cfa2a56d29c3999aabc03cc8982582e86c47
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Lib.hs:
   hash: 11d6d255cb397fa45980eb516ea685146565d9de2108c4eea356ea41db8364be
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Model.hs:
-  hash: c59f84d424a18a516383a419dc0ebf18fff00e77208fcbdfa05045ba1d0b1f2c
+  hash: a825f6287ebee1b74e2cb9fa712fbc36008e2d0f1a8cba2502fc8f25cbb833c2
+/Users/shuhan/Sorbonne/S2/PAF/dune2/src/Path.hs:
+  hash: 870b36e5f633e53fb6c710e58b720b223b489ad207e11964eda004959d218b9f
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Sprite.hs:
   hash: 9250967a28e63e2beb8653d37dda7fc3e54b930a004051d2bf40432514fae170
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/SpriteMap.hs:
@@ -35,4 +37,4 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/TextureMap.hs:
   hash: 41c1f3ae0b492288ed06f6c905bb3043a4852fe77dae78467c480fbd61d4d61a
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Unite.hs:
-  hash: 3df297b802484bdad073dcfe5a5031ff2c0ac67759ab7458e61caf8d1cddde1f
+  hash: dc759faaf26232dbb0b892483701468bad62f92d8a95652c5618f7db6b03b37d

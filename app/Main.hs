@@ -14,8 +14,8 @@ import qualified Sprite as S
 
 import qualified SpriteMap as SM
 
---import Keyboard (Keyboard)
-
+import Keyboard
+import qualified Keyboard as K
 import Carte
 import Data.Word (Word8)
 import qualified Data.Map as Map
@@ -58,8 +58,8 @@ drawMap renderer (Carte m) tileWidth tileHeight = do
     let rect = SDL.Rectangle (SDL.P (SDL.V2 (fromIntegral (x * tileWidth)) (fromIntegral (y * tileHeight)))) (SDL.V2 (fromIntegral tileWidth) (fromIntegral tileHeight))
     drawTerrain renderer terrain rect
 
-loadEntite :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO (TextureMap, SpriteMap)
-loadEntite renderer  tmap smap env = do
+loadEntites :: Renderer -> TextureMap -> SpriteMap -> Environnement -> IO (TextureMap, SpriteMap)
+loadEntites renderer  tmap smap env = do
   let unitesList = Map.elems (unites env)
       batimentsList = Map.elems (batiments env)
 
@@ -73,10 +73,45 @@ loadUnite renderer  (tmap, smap) unite = do
       filePath = getFilePathForUnite (utype unite)
 
   tmap' <- TM.loadTexture renderer filePath textureId tmap
-  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 100 100)
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 32 32)
   let smap' = SM.addSprite spriteId sprite smap
 
   return (tmap', smap')
+
+unloadEntites :: TextureMap -> SpriteMap -> Environnement -> Environnement -> IO (TextureMap, SpriteMap)
+unloadEntites tmap smap oldEnv newEnv = do
+  let oldUnitesList = Map.elems (unites oldEnv)
+      newUnitesList = Map.elems (unites newEnv)
+      oldBatimentsList = Map.elems (batiments oldEnv)
+      newBatimentsList = Map.elems (batiments newEnv)
+
+  let removedUnites = filter (`notElem` newUnitesList) oldUnitesList
+  let removedBatiments = filter (`notElem` newBatimentsList) oldBatimentsList
+
+  let smap' = foldr (SM.removeSprite . getSpriteIdForUnite) smap removedUnites
+  let smap'' = foldr (SM.removeSprite . getSpriteIdForBatiment) smap' removedBatiments
+
+  -- For now, we just return the original TextureMap without changes
+  return (tmap, smap'')
+
+loadEntite :: Renderer -> (TextureMap, SpriteMap) -> Entite -> IO (TextureMap, SpriteMap)
+loadEntite renderer (tmap, smap) entity = do
+  case entity of
+    Left batiment -> loadBatiment renderer (tmap, smap) batiment
+    Right unite -> loadUnite renderer (tmap, smap) unite
+
+  
+
+unloadEntite :: TextureMap -> SpriteMap -> Entite -> IO (TextureMap, SpriteMap)
+unloadEntite tmap smap entity = do
+  let spriteId = case entity of
+        Left batiment -> getSpriteIdForBatiment batiment
+        Right unite -> getSpriteIdForUnite unite
+
+  -- For now, we just return the original TextureMap without changes
+  let smap' = SM.removeSprite spriteId smap
+  return (tmap, smap')
+
 
 loadBatiment :: Renderer  -> (TextureMap, SpriteMap) -> Batiment -> IO (TextureMap, SpriteMap)
 loadBatiment renderer  (tmap, smap) batiment = do
@@ -85,12 +120,37 @@ loadBatiment renderer  (tmap, smap) batiment = do
       filePath = getFilePathForBatiment (btype batiment)
 
   tmap' <- TM.loadTexture renderer filePath textureId tmap
-  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 100 100)
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage textureId (S.mkArea 0 0 32 32)
   let smap' = SM.addSprite spriteId sprite smap
 
   
   return (tmap', smap')
 
+getInfoAreaData :: GameState -> (T.Text, T.Text, T.Text)
+getInfoAreaData gameState =
+  let health = case selected gameState of
+                 Just entityId -> getEntityHealth gameState entityId
+                 Nothing       -> 0
+
+      currentPlayer = getEntiteJoueur gameState <$> selected gameState
+      playerCredits = maybe 0 (getJoueurCredit gameState) currentPlayer
+      currentPlayerId = case currentPlayer of 
+                          Just jid -> unJoueurId jid
+                          Nothing  -> 0
+      
+      activePlayerText = T.concat [T.pack "Player: ", T.pack (show currentPlayerId)]
+      creditBalanceText = T.concat [T.pack "Credits: ", T.pack (show playerCredits)]
+      healthText = T.concat [T.pack "Points de vie: ", T.pack (show health)]
+
+  in (activePlayerText, creditBalanceText, healthText)
+  
+drawText :: Renderer -> Font -> V4 Word8 -> T.Text -> SDL.Rectangle CInt -> IO ()
+drawText renderer font textColor text rect = do
+  textSurface <- Font.solid font textColor text
+  textTexture <- SDL.createTextureFromSurface renderer textSurface
+  SDL.freeSurface textSurface
+  SDL.copy renderer textTexture Nothing (Just rect)
+  SDL.destroyTexture textTexture
 
 drawInfoAndMenu :: Renderer -> GameState -> Font -> IO ()
 drawInfoAndMenu renderer gameState font = do
@@ -104,39 +164,33 @@ drawInfoAndMenu renderer gameState font = do
   SDL.rendererDrawColor renderer SDL.$= V4 150 150 150 255
   SDL.fillRect renderer (Just menuArea)
 
-  -- Draw the text for the active player and their credit balance
-  let activePlayer = "Player: " ++ (show $ currentPlayer gameState)
-  let creditBalance = "Credits: " ++ (show $ playerCredits gameState)
+  let (activePlayer, creditBalance, pointDeVie) = getInfoAreaData gameState
 
   let textColor = V4 0 0 0 255 :: V4 Word8
-  textSurface1 <- Font.solid font textColor (T.pack activePlayer)
-  textTexture1 <- SDL.createTextureFromSurface renderer textSurface1
-  SDL.freeSurface textSurface1
 
-  textSurface2 <- Font.solid font textColor (T.pack creditBalance)
-  textTexture2 <- SDL.createTextureFromSurface renderer textSurface2
-  SDL.freeSurface textSurface2
+  drawText renderer font textColor activePlayer (SDL.Rectangle (SDL.P (SDL.V2 650 30)) (SDL.V2 150 20))
+  drawText renderer font textColor creditBalance (SDL.Rectangle (SDL.P (SDL.V2 650 70)) (SDL.V2 150 20))
+  drawText renderer font textColor pointDeVie (SDL.Rectangle (SDL.P (SDL.V2 650 110)) (SDL.V2 150 20))
 
-  let srcRect = SDL.Rectangle (SDL.P (SDL.V2 0 0)) (SDL.V2 200 20)
-  let dstRect1 = SDL.Rectangle (SDL.P (SDL.V2 650 10)) (SDL.V2 200 20)
-  let dstRect2 = SDL.Rectangle (SDL.P (SDL.V2 650 30)) (SDL.V2 200 20)
 
-  SDL.copy renderer textTexture1 (Just srcRect) (Just dstRect1)
-  SDL.copy renderer textTexture2 (Just srcRect) (Just dstRect2)
-
-  SDL.destroyTexture textTexture1
-  SDL.destroyTexture textTexture2
-
-appLoop :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
-appLoop renderer tmap smap gameState font = do
-  let env = envi gameState
+appLoop :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> Keyboard -> MouseState -> IO ()
+appLoop renderer tmap smap gameState font kbd mouseState = do
   events <- pollEvents
+  startTime <- time
   let quit = any isQuitEvent events
+  let (kbd', mouseState') = handleEvents events (kbd, mouseState)
+
   unless quit $ do
     clear renderer
     drawEnv renderer tmap smap gameState font
     present renderer
-    appLoop renderer tmap smap gameState font
+    endTime <- time
+    -- let deltaTime = endTime - startTime
+    let deltaTime = 2
+    let gameState' = gameStep gameState kbd' mouseState' deltaTime
+    -- get update entite
+
+    appLoop renderer tmap smap gameState' font kbd' mouseState'
   where
     isQuitEvent e = case eventPayload e of
       WindowClosedEvent{} -> True
@@ -151,32 +205,26 @@ drawEnv renderer tmap smap gameState font = do
   -- Draw units
   forM_ (Map.elems (unites env)) $ \unite -> do
     let spriteId = getSpriteIdForUnite unite
-    let (C x y) = ucoord unite
-    let screenPosX = fromIntegral x * 32
-    let screenPosY = fromIntegral y * 32
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) screenPosX screenPosY
+    let (screenPosX, screenPosY) = entiePos (Right unite) 
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
     S.displaySprite renderer tmap sprite
 
   -- Draw buildings
   forM_ (Map.elems (batiments env)) $ \batiment -> do
-    
     let spriteId = getSpriteIdForBatiment batiment
-    let (C x y) = bcoord batiment
-    let screenPosX = fromIntegral x * 32
-    let screenPosY = fromIntegral y * 32
-    
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) screenPosX screenPosY
+    let (screenPosX, screenPosY) = entiePos (Left batiment) 
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
     S.displaySprite renderer tmap sprite
 
   drawInfoAndMenu renderer gameState font
 
-
+  
 
 main :: IO ()
 main = do
   initializeAll
   SDL.Font.initialize
-  font <- Font.load "assets/Freedom-10eM.ttf" 16
+  font <- Font.load "assets/OpenSans-Regular.ttf" 40
   gen <- newStdGen
   let rows = 20
   let cols = 20
@@ -200,12 +248,15 @@ main = do
   -- Create an initial Environnement using creerEnvironnement
   let env = creerEnvironnement myMap initialPositions
   let gameState = initGameState env
-  
+  -- initialisation de l'état du clavier
+  let kbd = K.createKeyboard
+  let mouseState = K.createMouseState
+
   -- Load entities into the TextureMap and SpriteMap
-  (tmap1, smap2) <- loadEntite renderer tmap smap env
+  (tmap1, smap2) <- loadEntites renderer tmap smap env
   
   -- Run the app loop with the updated TextureMap and SpriteMap
-  appLoop renderer tmap1 smap2 gameState font
+  appLoop renderer tmap1 smap2 gameState font kbd mouseState
 
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
