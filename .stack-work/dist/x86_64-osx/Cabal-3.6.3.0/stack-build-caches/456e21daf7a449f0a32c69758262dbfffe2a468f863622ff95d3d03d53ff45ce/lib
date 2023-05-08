@@ -13,21 +13,21 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/package.yaml:
   hash: 74b897980e38bdc5a6e2d062ccc55d1a1ba850001c0a51ed92609b741323fc80
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Batiment.hs:
-  hash: 3373d00f31dd03f9d6699c0ffebdbb4d77050c32057bc2ff68965966f36eb2d5
+  hash: f95920f5810eb2cfa089f491485308f3edf8c8afcac3a03d3cabea0cd3a5c79e
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Carte.hs:
-  hash: 67fd968ba0d31f1623555178c23e3afe3c38977de1a0b6eeea87a1136861cf35
+  hash: ecc2caa0217d5c15745ba03f17e17fc7d99aac9aa1a7071323f6dd9899cee39d
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Common.hs:
   hash: bfe05e503ba16273dc05b6e545e130f6388758b392324440ede260a4dd7c6b9f
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Environnement.hs:
-  hash: b59c74f37d99d8f62038fc2850cd363a55e9b79e5cee390b959aad23d35911c7
+  hash: f0edd6b2b004fd0f281c5e95673440067a351928be8962ad2e6d9ccfa40a4aea
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Joueur.hs:
-  hash: bdc76cc490339d7d47a28efeaf694227298fc8b9760e37bb22e6883c94c7f65e
+  hash: e499e5959649b5fd94df25abe76462af5495df3a10a35688fc8c8dc86d2d6a98
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Keyboard.hs:
   hash: 26718f7a76b8a69ea2097f12ad8d6d4a686c555c84ce3d6704cbc09eb1a077b9
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Lib.hs:
   hash: 11d6d255cb397fa45980eb516ea685146565d9de2108c4eea356ea41db8364be
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Model.hs:
-  hash: 2d867190e7265491b2cd8fc5c7de74a0da78c8c862193dab1eb7e1ebf79f4385
+  hash: 5d3198ab79edd029b28d3f0c6c5c103dc8404fcf13254b74bf4eae5cdbd9a047
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Path.hs:
   hash: 870b36e5f633e53fb6c710e58b720b223b489ad207e11964eda004959d218b9f
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Sprite.hs:
@@ -37,4 +37,4 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/TextureMap.hs:
   hash: 27426727347fd68ee3411986f464169f057de7954f360785078ef1abc648829b
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Unite.hs:
-  hash: 63afbcbb66726691f294928129dc9e3ba05e1b38c064d481f56c9064f0b228a0
+  hash: 42fd8ac5636b22b2e65f8f9c4fd15e5ab8e3573b77098b396ccf7ffca4930bba

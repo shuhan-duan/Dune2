@@ -12,7 +12,7 @@ import Environnement
 import Joueur
 import Data.Map
 import Data.Maybe
-import Debug.Trace
+import qualified Debug.Trace as Debug
 
 -- Returns the cost (in credits) of a given building type.
 batimentTypeCost :: BatimentType -> Int
@@ -53,7 +53,7 @@ construireBatiment joueur env btype coord
              newJoueur = joueur { jcredits = jcredits joueur - batimentTypeCost btype}
              env' = updateJoueur newJoueur env
              updatedEnv = updateBatiment newBatiment env'
-             in trace ("created batiments: " ++ show (batiments updatedEnv)) updatedEnv
+             in updatedEnv
 
 -- Modifie les points de vie d'un bâtiment en ajoutant la valeur de deltaPoints.
 -- Si le résultat est inférieur à 0, les points de vie sont fixés à 0.    
@@ -62,7 +62,8 @@ modifierPointsVie deltaPoints batiment = batiment { bpointsVie = max 0 (bpointsV
 
 -- produce unite si le batiment est "Usine"
 produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
-produireUnite env utype bat =
+produireUnite env utype bat  =
+    Debug.trace "Call Producing unit in factory" 
     case btype bat of
          Usine -> case btempsProd bat of
             Just _ -> env  -- L'usine est déjà en train de produire une unité
@@ -75,7 +76,7 @@ produireUnite env utype bat =
                                              newJoueur = joueur { jcredits = jcredits joueur - uniteTypeCost utype }
                                              env' = updateJoueur newJoueur env
                                              env'' = updateBatiment newBat env'
-                                        in env''
+                                        in Debug.trace "Producing unit in factory" $ env''
             where j = joueurProprioBatiment env bat
          _ -> env -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité
 
@@ -88,16 +89,18 @@ terminerProduction j env bat =
       case btempsProd bat of
         Just (t, utype) ->
           if t == 1
-            then
-              let newUnit = creerUnite utype j (bcoord bat)
+            then  -- creerUnite :: UniteType -> Joueur -> Coord -> Environnement -> Unite
+                  -- findNearestGrass :: Coord -> Carte -> Maybe Coord
+              let newCoord = fromJust(findNearestGrass  (bcoord bat) (ecarte env)) -- nearby the bat 
+                  newUnit = creerUnite utype j newCoord env
                   newBatiment = bat {btempsProd = Nothing}
                   env' = updateUnite newUnit env
                   env'' = updateBatiment newBatiment env'
-              in env''
+              in Debug.trace "termined Production" $ env''
             else
               let newBatiment = bat {btempsProd = Just (t-1, utype)}
                   env' = updateBatiment newBatiment env
-              in terminerProduction j env' newBatiment
+              in Debug.trace "terminerProduction" $ terminerProduction j env' newBatiment
         Nothing -> env
     _ -> env
 
@@ -119,28 +122,28 @@ creerEnvironnement carte qgCoords =
                                  }
       updatedEnv = Prelude.foldl (\env (j, qgCoord) -> construireBatiment j env QuartierGeneral qgCoord)
            initialEnv (zip initialJoueurs qgCoords)
-  in trace ("Initial batiments: " ++ show (batiments updatedEnv)) updatedEnv
+  in Debug.trace ("Initial batiments: " ++ show (batiments updatedEnv)) updatedEnv
 
 
-executerCommande :: Commande -> Environnement -> Environnement
-executerCommande cmd env =
-  case cmd of
-    DonnerOrdre uid ordre -> -- Update the unit with the new order
-      let unite = M.lookup uid (unites env)
-      in case unite of
-        Just u -> updateUnite (u {uordres = ordre : uordres u}) env
-        Nothing -> env
-    Construire jid btype coord -> -- Build a new building at the specified coordinates
-      let joueur = findJoueur jid (joueurs env)
-      in case joueur of
-        Just j -> construireBatiment j env btype coord
-        Nothing -> env
-    Produire jid utype -> -- Produce a new unit
-      let joueur = findJoueur jid (joueurs env)
-          usine = findUsineForJoueur joueur (batiments env)
-      in case usine of
-        Just u -> produireUnite env utype u
-        Nothing -> env
+-- executerCommande :: Commande -> Environnement -> Environnement
+-- executerCommande cmd env =
+--   case cmd of
+--     DonnerOrdre uid ordre -> -- Update the unit with the new order
+--       let unite = M.lookup uid (unites env)
+--       in case unite of
+--         Just u -> updateUnite (u {uordres = ordre : uordres u}) env
+--         Nothing -> env
+--     Construire jid btype coord -> -- Build a new building at the specified coordinates
+--       let joueur = findJoueur jid (joueurs env)
+--       in case joueur of
+--         Just j -> construireBatiment j env btype coord
+--         Nothing -> env
+--     Produire jid utype -> -- Produce a new unit
+--       let joueur = findJoueur jid (joueurs env)
+--           usine = findUsineForJoueur joueur (batiments env)
+--       in case usine of
+--         Just u -> produireUnite env utype u
+--         Nothing -> env
 
 -- Calculate the total energy production and consumption of the player's building
 energieTotal :: Joueur -> Int
@@ -170,7 +173,7 @@ debutTour :: Environnement -> Environnement
 debutTour env =
   let env' = updateEtatBatimentsForALL env
       env'' = terminerProductionForALL env'
-  in env''
+  in Debug.trace "debutTour" $ env''
 
 -- End production of units for all players
 terminerProductionForALL :: Environnement -> Environnement
@@ -179,15 +182,3 @@ terminerProductionForALL env =
             Prelude.foldl (terminerProduction joueur
                   ) accEnv (M.elems (jbatiments joueur))
         ) env (joueurs env)
-
-findUsineForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
-findUsineForJoueur Nothing _ = Nothing
-findUsineForJoueur (Just joueur) batiments =
-  let usines = M.filter (\b -> btype b == Usine && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
-  in if M.null usines then Nothing else Just (snd (M.findMin usines))       
-
-findRaffinerieForJoueur :: Maybe Joueur -> Map BatId Batiment -> Maybe Batiment
-findRaffinerieForJoueur Nothing _ = Nothing
-findRaffinerieForJoueur (Just joueur) batiments =
-  let raffs = M.filter (\b -> btype b == Raffinerie && bproprio b == jid joueur && isNothing (btempsProd b)) batiments
-  in if M.null raffs then Nothing else Just (snd (M.findMin raffs))       

@@ -34,6 +34,7 @@ data GameState = GameState
     , selected :: Maybe Selected
     , menuItems :: [MenuItem]
     , pendingAction :: Maybe MenuItem
+    ,remainingTurnTime :: Float
     }
   deriving (Show)
 
@@ -44,11 +45,17 @@ initGameState ienv = GameState
   , pendingCommand = Nothing
   , selected = Nothing
   , pendingAction = Nothing
+  , remainingTurnTime = 20
   }
 
 gameStep :: GameState -> Keyboard -> MouseState -> MouseState -> Float -> GameState
 gameStep gstate kbd prevMouseState mouseState deltaTime =
-  let selected' = if leftButton mouseState && not (leftButton prevMouseState)
+  let remainingTurnTime' = remainingTurnTime gstate - deltaTime
+      isNewTurn = remainingTurnTime' <= 0
+      turnDuration = 30 -- Set the turn duration in seconds
+      remainingTurnTime'' = if isNewTurn then turnDuration else remainingTurnTime'
+
+      selected' = if leftButton mouseState && not (leftButton prevMouseState)
                      then selectedCase (mouseX mouseState) (mouseY mouseState) gstate
                      else selected gstate
       menuItems' = case selected' of
@@ -73,7 +80,16 @@ gameStep gstate kbd prevMouseState mouseState deltaTime =
 
       -- If the unit is on the raffinerie, convertResourcesToCredits
       -- TODO: check the unit is on the raffinerie
-  in gstate2
+
+      -- Update the remainingTurnTime and call debutTour if it's a new turn
+      gstate3 = if isNewTurn
+                then gstate2 { envi = debutTour (envi gstate2), remainingTurnTime = remainingTurnTime'' }
+                else gstate2 { remainingTurnTime = remainingTurnTime'' }
+      -- Call terminerProductionForALL
+      env' = terminerProductionForALL (envi gstate3)
+  in gstate3 { envi = env' }
+
+
 
 
 selectedCase :: Int -> Int -> GameState -> Maybe Selected
@@ -164,11 +180,12 @@ getMenuItemsForEntity gameState entityId =
 
 handleMenuClick :: GameState -> MouseState -> GameState
 handleMenuClick gameState mouseState = 
+  Debug.trace "handleMenuClick is called" $
   case selected gameState of
     Just (Left entityId) -> 
       let clickedMenuItem = getMenuItemAtClick gameState mouseState
           currentPlayerId = getEntiteJoueur gameState entityId
-          currentPlayer = findJoueur currentPlayerId (joueurs (envi gameState))
+          currentPlayer = findJoueur currentPlayerId (joueurs (envi gameState))         
       in case clickedMenuItem of
         Just menuItem -> gameState { pendingAction = Just menuItem ,currentPlayer = currentPlayer }
         Nothing -> gameState

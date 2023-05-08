@@ -2,8 +2,9 @@ module Carte where
 
 import qualified Data.Map.Strict as M
 import System.Random
-import Data.List (nub)
+import Data.List (nub,minimumBy)
 import qualified Data.Map as Map
+import Data.Ord (comparing)
 
 data Coord = C {cx :: Int, cy :: Int}
     deriving (Show, Eq)
@@ -170,3 +171,10 @@ euclideanDistance (C x1 y1) (C x2 y2) =
 isFarEnough :: Float -> Coord -> [Coord] -> Bool
 isFarEnough threshold newCoord existingCoords =
   all (\coord -> euclideanDistance newCoord coord > threshold) existingCoords
+
+findNearestGrass :: Coord -> Carte -> Maybe Coord
+findNearestGrass coord (Carte m) =
+  let grassCoords = [c | (c, t) <- M.toList m, t == Herbe, c /= coord]
+  in if null grassCoords
+       then Nothing
+       else Just $ minimumBy (comparing (euclideanDistance coord)) grassCoords

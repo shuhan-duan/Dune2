@@ -69,8 +69,8 @@ uniteTypeCost Combatant = 10
 
 -- Returns the product time of a given unite type.
 uniteTypeTempsProd :: UniteType -> Int
-uniteTypeTempsProd Collecteur  = 20
-uniteTypeTempsProd Combatant = 15
+uniteTypeTempsProd Collecteur  = 6
+uniteTypeTempsProd Combatant = 4
 
 -- Returns the point of life  of a given unite type.
 uniteTypePointsVie :: UniteType -> Int
@@ -78,18 +78,23 @@ uniteTypePointsVie Collecteur  = 100
 uniteTypePointsVie Combatant = 50
 
 -- create new unite 
-creerUnite :: UniteType -> Joueur -> Coord -> Unite
-creerUnite utype joueur coord =
-  Unite {
-    uid = getNextUniteId joueur,
+creerUnite :: UniteType -> Joueur -> Coord -> Environnement -> Unite
+creerUnite utype joueur coord env =
+  let allUnits = M.elems (unites env)
+      newId = if null allUnits
+              then UniteId 1
+              else UniteId (1 + unUniteId (Prelude.maximum (map uid allUnits)))
+  in  Unite {
+    uid = newId,
     utype = utype,
     uproprio = jid joueur,
     ucoord = coord,
+    upath = [],
     upointsVie = uniteTypePointsVie utype,
     ucuve = initCuve (uniteTypeCapaciteCuve utype),
-    uordres = [],
-    ubut = Deplacer coord
-  }
+    uordres = []
+} 
+    
 
 
 -- Defirnir la porter d'attaque

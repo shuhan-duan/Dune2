@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 module Joueur where
 
 import Common
@@ -17,12 +16,6 @@ jraffineries joueur = [bid | (bid, batiment) <- Map.toList (jbatiments joueur), 
 jusines :: Joueur -> [BatId]
 jusines joueur = [bid | (bid, batiment) <- Map.toList (jbatiments joueur), btype batiment == Usine]
 
-
-getNextBatimentId :: Joueur -> BatId
-getNextBatimentId j = BatId $ maximum (map unBatId $ keys (jbatiments j)) + 1
-
-getNextUniteId :: Joueur -> UniteId
-getNextUniteId j = UniteId $ maximum (map unUniteId $ keys $ junites j) + 1
 
 joueurExiste :: JoueurId -> Environnement -> Bool
 joueurExiste joueurId env = joueurId `elem` fmap jid (joueurs env)

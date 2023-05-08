@@ -189,18 +189,20 @@ appLoop renderer tmap smap gameState font kbd mouseState = do
   let (gameState', kbd', mouseState') = handleEvents events gameState (kbd, mouseState)
 
   unless quit $ do
-    -- Update the TextureMap and SpriteMap if necessary
-    (tmap', smap') <- updateTSMap renderer (tmap, smap) gameState gameState'
-
     clear renderer
-    drawEnv renderer tmap' smap' gameState' font
-    present renderer
     endTime <- time
-    -- let deltaTime = endTime - startTime
-    let deltaTime = 2
+    let deltaTime = endTime - startTime
+    --let deltaTime = 2
     -- gameStep :: gameStep gstate kbd prevMouseState mouseState deltaTime
     let gameState2 = gameStep gameState' kbd' mouseState mouseState' deltaTime
 
+    -- Update the TextureMap and SpriteMap if necessary
+    (tmap', smap') <- updateTSMap renderer (tmap, smap) gameState gameState2
+
+    drawEnv renderer tmap' smap' gameState' font
+    present renderer
+    
+    
     appLoop renderer tmap' smap' gameState2 font kbd' mouseState'
   where
     isQuitEvent e = case eventPayload e of
@@ -230,7 +232,7 @@ main = do
   let smap = SM.createSpriteMap
   
   -- Generate initial player positions
-  let numPlayers = 4
+  let numPlayers = 2
   let initialPositions = generateInitialPlayerPositions numPlayers myMap gen
   --let initialPositions = [(C 5 5), (C 10 10), (C 20 20), (C 25 25)]
 
