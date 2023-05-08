@@ -93,13 +93,6 @@ unloadEntites tmap smap oldEnv newEnv = do
 
   -- For now, we just return the original TextureMap without changes
   return (tmap, smap'')
-
-loadEntite :: Renderer -> (TextureMap, SpriteMap) -> Entite -> IO (TextureMap, SpriteMap)
-loadEntite renderer (tmap, smap) entity = do
-  case entity of
-    Left batiment -> loadBatiment renderer (tmap, smap) batiment
-    Right unite -> loadUnite renderer (tmap, smap) unite
-
   
 
 unloadEntite :: TextureMap -> SpriteMap -> Entite -> IO (TextureMap, SpriteMap)
@@ -187,50 +180,33 @@ drawInfoAndMenu renderer gameState font = do
     Just (Right _) -> return ()  -- Ignore the Terrain case
     Nothing -> return ()
 
+-- | Main application loop
 appLoop :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> Keyboard -> MouseState -> IO ()
 appLoop renderer tmap smap gameState font kbd mouseState = do
   events <- pollEvents
   startTime <- time
   let quit = any isQuitEvent events
-  let (kbd', mouseState') = handleEvents events (kbd, mouseState)
+  let (gameState', kbd', mouseState') = handleEvents events gameState (kbd, mouseState)
 
   unless quit $ do
+    -- Update the TextureMap and SpriteMap if necessary
+    (tmap', smap') <- updateTSMap renderer (tmap, smap) gameState gameState'
+
     clear renderer
-    drawEnv renderer tmap smap gameState font
+    drawEnv renderer tmap' smap' gameState' font
     present renderer
     endTime <- time
     -- let deltaTime = endTime - startTime
     let deltaTime = 2
-    let gameState' = gameStep gameState kbd' mouseState' deltaTime
-    
+    -- gameStep :: gameStep gstate kbd prevMouseState mouseState deltaTime
+    let gameState2 = gameStep gameState' kbd' mouseState mouseState' deltaTime
 
-    appLoop renderer tmap smap gameState' font kbd' mouseState'
+    appLoop renderer tmap' smap' gameState2 font kbd' mouseState'
   where
     isQuitEvent e = case eventPayload e of
       WindowClosedEvent{} -> True
       _                   -> False
 
-drawEnv :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
-drawEnv renderer tmap smap gameState font = do
-  let env = envi gameState 
-  -- Draw the map
-  drawMap renderer (ecarte env) 32 32
-
-  -- Draw units
-  forM_ (Map.elems (unites env)) $ \unite -> do
-    let spriteId = getSpriteIdForUnite unite
-    let (screenPosX, screenPosY) = entiePos (Right unite) 
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
-    S.displaySprite renderer tmap sprite
-
-  -- Draw buildings
-  forM_ (Map.elems (batiments env)) $ \batiment -> do
-    let spriteId = getSpriteIdForBatiment batiment
-    let (screenPosX, screenPosY) = entiePos (Left batiment) 
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
-    S.displaySprite renderer tmap sprite
-
-  drawInfoAndMenu renderer gameState font
 
 
 main :: IO ()
@@ -298,4 +274,49 @@ menuItemToText menuItem = case menuItem of
   CollectResources -> T.pack "Collect Resources"
   Attack -> T.pack "Attack"
   Patrol -> T.pack "Patrol"
+
+drawEnv :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
+drawEnv renderer tmap smap gameState font = do
+  let env = envi gameState 
+  -- Draw the map
+  drawMap renderer (ecarte env) 32 32
+
+  -- Draw units
+  forM_ (Map.elems (unites env)) $ \unite -> do
+    let spriteId = getSpriteIdForUnite unite
+    let (screenPosX, screenPosY) = entiePos (Right unite) 
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
+    S.displaySprite renderer tmap sprite
+
+  -- Draw buildings
+  forM_ (Map.elems (batiments env)) $ \batiment -> do
+    let spriteId = getSpriteIdForBatiment batiment
+    let (screenPosX, screenPosY) = entiePos (Left batiment) 
+    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
+    S.displaySprite renderer tmap sprite
+
+  drawInfoAndMenu renderer gameState font
+
+updateTSMap :: Renderer -> (TextureMap, SpriteMap) -> GameState -> GameState -> IO (TextureMap, SpriteMap)
+updateTSMap renderer (tmap, smap) oldState newState = do
+  let oldEnv = envi oldState
+  let newEnv = envi newState
+  let oldBuildings = batiments oldEnv
+  let newBuildings = batiments newEnv
+  let oldUnits = unites oldEnv
+  let newUnits = unites newEnv
+
+  
+  -- Check if a new building has been added
+  let addedBuildings = Map.difference newBuildings oldBuildings
+  --putStrLn $ "Added buildings: " ++ show addedBuildings
+  unless (Map.null addedBuildings) $ putStrLn "Loading new buildings..."
+  (tmap', smap') <- foldM (\acc e -> loadBatiment renderer acc e) (tmap, smap) (Map.elems addedBuildings)
+
+  -- Check if a new unit has been added
+  let addedUnits = Map.difference newUnits oldUnits
+  unless (Map.null addedUnits) $ putStrLn "Loading new units..."
+  (tmap2, smap2) <- foldM (\acc e -> loadUnite renderer acc e) (tmap', smap') (Map.elems addedUnits)
+
+  return (tmap2, smap2)
 

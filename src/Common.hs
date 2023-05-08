@@ -90,14 +90,14 @@ data Unite = Unite {
 } deriving (Show, Eq)
 
 getFilePathForUnite :: UniteType -> String
-getFilePathForUnite Collecteur = "assets/collecteur.png"
-getFilePathForUnite Combatant = "assets/combatant.png"
+getFilePathForUnite Collecteur = "assets/collecteur.bmp"
+getFilePathForUnite Combatant = "assets/combatant.bmp"
 
 getFilePathForBatiment :: BatimentType -> String
 getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
 getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
-getFilePathForBatiment Usine = "assets/usine.png"
-getFilePathForBatiment Centrale = "assets/centrale.png"
+getFilePathForBatiment Usine = "assets/usine.bmp"
+getFilePathForBatiment Centrale = "assets/qurtierGeneral.bmp"
 
 data Environnement = Environnement{
                 joueurs :: [Joueur],
@@ -116,4 +116,5 @@ findJoueur _ [] = Nothing
 findJoueur id' (j:js)
   | jid j == id' = Just j
   | otherwise = findJoueur id' js
+
 

@@ -52,8 +52,8 @@ construireBatiment joueur env btype coord
                                     }
              newJoueur = joueur { jcredits = jcredits joueur - batimentTypeCost btype}
              env' = updateJoueur newJoueur env
-             env'' = updateBatiment newBatiment env'
-             in env''
+             updatedEnv = updateBatiment newBatiment env'
+             in trace ("created batiments: " ++ show (batiments updatedEnv)) updatedEnv
 
 -- Modifie les points de vie d'un bâtiment en ajoutant la valeur de deltaPoints.
 -- Si le résultat est inférieur à 0, les points de vie sont fixés à 0.    

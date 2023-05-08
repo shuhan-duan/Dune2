@@ -121,12 +121,13 @@ generateRandomMap :: Int -> Int -> StdGen -> Carte
 generateRandomMap width height gen =
   let coords = [C x y | x <- [0..width - 1], y <- [0..height - 1]]
       randomTerrains = randomRs (0, 2) gen :: [Int]
-      terrainFromInt n = case n of
+      randomSizes = randomRs (30, 100) gen :: [Int]
+      terrainFromIntSize n size = case n of
         0 -> Herbe
-        1 -> Ressource (50 + mod n 100)
+        1 -> Ressource size
         _ -> Eau
-      terrains = map terrainFromInt randomTerrains
-  in Carte . M.fromList $ zip coords terrains
+      terrainsWithSizes = zipWith terrainFromIntSize randomTerrains randomSizes
+  in Carte . M.fromList $ zip coords terrainsWithSizes
 
 generateInitialPlayerPositions :: Int -> Carte -> StdGen -> [Coord]
 generateInitialPlayerPositions numPlayers carte gen =

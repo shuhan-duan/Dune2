@@ -3,8 +3,6 @@ module Keyboard where
 
 import SDL
 
-import Data.List (foldl')
-
 import Data.Set (Set)
 import qualified Data.Set as S
 
@@ -15,6 +13,7 @@ data MouseState = MouseState
   , rightButton :: Bool
   , mouseX :: Int
   , mouseY :: Int
+  , clickedInMenu :: Bool
   } deriving (Show, Eq)
 
 
@@ -23,7 +22,7 @@ createKeyboard :: Keyboard
 createKeyboard = S.empty
 
 createMouseState :: MouseState
-createMouseState = MouseState False False 0 0
+createMouseState = MouseState False False 0 0 False
 
 
 -- handle keyboard events for commands or selecting buildings/units with shortcut keys
@@ -37,37 +36,6 @@ handleKeyboardEvent event kbd =
            then S.delete (keysymKeycode (keyboardEventKeysym keyboardEvent)) kbd
            else kbd
     _ -> kbd
-
--- handle mouse events for selecting buildings, units or clicking commands in the menu
-handleMouseEvent :: Event -> MouseState -> MouseState
-handleMouseEvent event mouseState =
-  case eventPayload event of
-    MouseButtonEvent e ->
-      let button = mouseButtonEventButton e
-          motion = mouseButtonEventMotion e
-          P (V2 x y) = mouseButtonEventPos e
-          pos = V2 (fromIntegral x) (fromIntegral y) :: V2 Int
-      in if button == ButtonLeft
-         then mouseState { leftButton = motion == Pressed
-                         , mouseX = getComponentX pos
-                         , mouseY = getComponentY pos
-                         }
-         else mouseState
-    MouseMotionEvent e ->
-      let P (V2 x y) = mouseMotionEventPos e
-          pos = V2 (fromIntegral x) (fromIntegral y) :: V2 Int
-      in mouseState { mouseX = getComponentX pos
-                    , mouseY = getComponentY pos
-                    }
-    _ -> mouseState
-
--- | prise en compte des événements SDL2 pour mettre à jour l'état du clavier et souris
-handleEvents :: [Event] -> (Keyboard, MouseState) -> (Keyboard, MouseState)
-handleEvents events (kbd, mouseState) =
-  let kbd' = foldl' (flip handleKeyboardEvent) kbd events
-      mouseState' = foldl' (flip handleMouseEvent) mouseState events
-  in (kbd', mouseState')
-
 
 -- | quelques noms de *keycode*
 keycodeName :: Keycode -> Char
@@ -113,3 +81,13 @@ getComponentX (V2 x _) = x
 
 getComponentY :: V2 Int -> Int
 getComponentY (V2 _ y) = y
+
+isClickInMenuArea :: MouseState -> Bool
+isClickInMenuArea mouseState =
+  let x = mouseX mouseState
+      y = mouseY mouseState
+  in x >= 640 && x <= 840 && y >= 200 && y <= 480
+
+isPointInRect :: V2 Int -> SDL.Rectangle Int -> Bool
+isPointInRect (V2 x y) (SDL.Rectangle (SDL.P (V2 rx ry)) (V2 rw rh)) =
+  x >= rx && x <= rx + rw && y >= ry && y <= ry + rh
