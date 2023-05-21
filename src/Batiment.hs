@@ -75,7 +75,6 @@ prop_postConstruireBatiment j env btype coord =
 modifierPointsVie :: Int -> Batiment -> Batiment
 modifierPointsVie deltaPoints batiment = batiment { bpointsVie = max 0 (bpointsVie batiment - deltaPoints) }
 
--- produce unite si le batiment est "Usine"
 produireUnite :: Environnement -> UniteType -> Batiment -> Environnement
 produireUnite env utype bat  =
     Debug.trace "Call Producing unit in factory" 
@@ -94,7 +93,6 @@ produireUnite env utype bat  =
                                         in Debug.trace "Producing unit in factory" $ env''
             where j = joueurProprioBatiment env bat
          _ -> env -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité
-
 -- Pre-condition produireUnite
 prop_pre_produireUnite::Environnement->UniteType->Batiment->Bool
 prop_pre_produireUnite env utype bat =
@@ -109,17 +107,17 @@ prop_pre_produireUnite env utype bat =
   where j = joueurProprioBatiment env bat
 
 -- Post condition produireUnite
-prop_post_produireUnite::Environnement->UniteType->Batiment->Bool
+prop_post_produireUnite :: Environnement -> UniteType -> Batiment -> Bool
 prop_post_produireUnite env utype bat =
   let newEnv = produireUnite env utype bat
-      newjoueur = joueurProprioBatiment newEnv bat
-      newbat= getBatiment (bid bat) newEnv
-      newCredjouur= jcredits (fromJust(newjoueur))
-      (newTemps,newUnite)=  fromJust(btempsProd newbat)  
+      newJoueur = joueurProprioBatiment newEnv bat
+      newBat = getBatiment (bid bat) newEnv
+      newCredjoueur = jcredits (fromJust newJoueur)
+      (newTemps, newUnite) = fromJust (btempsProd newBat)
       temps = uniteTypeTempsProd utype
-      oldjoueur = joueurProprioBatiment env bat
-      credits = jcredits (fromJust(newjoueur)) - uniteTypeCost utype
-  in (newCredjouur==credits) && (newTemps==temps)
+      oldJoueur = joueurProprioBatiment env bat
+      credits = jcredits (fromJust oldJoueur) - uniteTypeCost utype
+  in newCredjoueur == credits && newTemps == temps && newUnite == utype
 
 
 -- termine la production de unite 
@@ -166,7 +164,7 @@ prop_postTerminerProd j env bat =
             constUnit= creerUnite utype j (bcoord bat) env
             newUnit = M.lookup (uid constUnit) (unites env')
             newBat = M.lookup (bid bat) (batiments env')
-        in ((uid constUnit) == (uid (fromJust(newUnit)))) && (btempsProd (fromJust(newBat)) == Nothing)
+        in ((uid constUnit) == (uid (fromJust(newUnit)))) && (btempsProd (fromJust(newBat))== Nothing)
 
 creerEnvironnement :: Carte -> [Coord] -> Environnement
 creerEnvironnement carte qgCoords =

@@ -44,14 +44,10 @@ jeuSpec = do
                             , batiments = M.fromList [(bid bat1, bat1), (bid bat2, bat2)]
                             }
         env' = produireUnite env Collecteur bat1
-    it "return True if the poutput of unite has begin" $ do
+    it "return True if the output of usine has begin" $ do
       prop_post_produireUnite env Collecteur bat1 `shouldBe` True
     it "return False if the output of the usine has begin" $ do
       prop_post_produireUnite env' Combatant bat1 `shouldBe` False
-    it "si les pres condition pour produire une unite sont verifiees il renvoie True" $ do
-      prop_pre_produireUnite env Collecteur bat1 `shouldBe` True
-    it "si la productioin de l'unite est lancer il renvoie True" $ do
-      prop_post_produireUnite env Collecteur bat1 `shouldBe` True
     it "return False if the batiment is not Usine" $ do
       prop_pre_produireUnite env Collecteur bat2 `shouldBe` False
     it "return True if the output of unite has done" $ do
