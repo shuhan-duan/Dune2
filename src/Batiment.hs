@@ -55,6 +55,21 @@ construireBatiment joueur env btype coord
              updatedEnv = updateBatiment newBatiment env'
              in updatedEnv
 
+
+--PostConditionConstuire batiment
+prop_postConstruireBatiment::Joueur->Environnement->BatimentType->Coord->Bool
+prop_postConstruireBatiment j env btype coord =
+  let env'=construireBatiment j env btype coord
+      batId = BatId (M.size (batiments env) + 1)
+      credits = jcredits j - batimentTypeCost btype
+      newJoueur = findJoueur (jid j) (joueurs env')
+      newCredit = jcredits (fromJust(newJoueur))
+      newBat= M.lookup batId (batiments env')
+      isTrueBat = (case newBat of 
+                    Just _ -> True
+                    Nothing -> False)
+  in isTrueBat && (credits==newCredit)
+
 -- Modifie les points de vie d'un bâtiment en ajoutant la valeur de deltaPoints.
 -- Si le résultat est inférieur à 0, les points de vie sont fixés à 0.    
 modifierPointsVie :: Int -> Batiment -> Batiment
@@ -80,6 +95,32 @@ produireUnite env utype bat  =
             where j = joueurProprioBatiment env bat
          _ -> env -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité
 
+- Pre-condition produireUnite
+prop_pre_produireUnite::Environnement->UniteType->Batiment->Bool
+prop_pre_produireUnite env utype bat =
+  let batType = (btype bat) == Usine
+      batTmprod = (case btempsProd bat of
+                    Just _ -> False
+                    Nothing -> True)
+      joueurcredit = (case j of
+                       Just joueur -> (jcredits joueur) >= uniteTypeTempsProd utype
+                       Nothing -> False)
+  in batType && batTmprod && joueurcredit 
+  where j = joueurProprioBatiment env bat
+
+-- Post condition produireUnite
+prop_post_produireUnite::Environnement->UniteType->Batiment->Bool
+prop_post_produireUnite env utype bat =
+  let newEnv = produireUnite env utype bat
+      newjoueur = joueurProprioBatiment newEnv bat
+      newbat= getBatiment (bid bat) newEnv
+      newCredjouur= jcredits (fromJust(newjoueur))
+      (newTemps,newUnite)=  fromJust(btempsProd newbat)  
+      temps = uniteTypeTempsProd utype
+      oldjoueur = joueurProprioBatiment env bat
+      credits = jcredits (fromJust(newjoueur)) - uniteTypeCost utype
+  in (newCredjouur==credits) && (newTemps==temps)
+
 
 -- termine la production de unite 
 terminerProduction :: Joueur -> Environnement -> Batiment -> Environnement
@@ -103,6 +144,29 @@ terminerProduction j env bat =
               in Debug.trace "terminerProduction" $ terminerProduction j env' newBatiment
         Nothing -> env
     _ -> env
+
+--Pres condition terminer production
+prop_preTerminerProd:: Joueur -> Batiment -> Bool
+prop_preTerminerProd j bat =
+  let batType = (btype bat) == Usine
+      batTempsProd = (btempsProd bat) /= Nothing
+      proprio = (case (M.lookup (bid bat) (jbatiments j)) of
+                    Just b -> True
+                    Nothing -> False)
+  in batType && batTempsProd && proprio 
+
+
+-- Post condition terminer production
+prop_postTerminerProd::Joueur->Environnement->Batiment->Bool
+prop_postTerminerProd j env bat =
+  let env'= terminerProduction j env bat
+  in case btype bat of
+      Usine -> 
+        let (t,utype) = fromJust(btempsProd bat)
+            constUnit= creerUnite utype j (bcoord bat)
+            newUnit = M.lookup (uid constUnit) (unites env')
+            newBat = M.lookup (bid bat) (batiments env')
+        in ((uid constUnit) == (uid (fromJust(newUnit)))) && (btempsProd (fromJust(newBat)) == Nothing)
 
 creerEnvironnement :: Carte -> [Coord] -> Environnement
 creerEnvironnement carte qgCoords =

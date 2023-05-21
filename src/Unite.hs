@@ -142,6 +142,36 @@ attaqueUnite attaquant cible env =
        then removeUnite updatedCible env
        else updateUnite updatedCible env
 
+-- Pres condition attaque
+prop_preAttaque :: Unite-> Bool
+prop_preAttaque unite=
+  case (utype unite) of
+    Combatant-> True
+    otherwise->False
+-- Post Condition attaque
+prop_postAttaque :: Unite -> Entite -> Environnement -> Bool
+prop_postAttaque unite cible env =
+  let result = attaque unite cible env 
+      degats = 10
+  in case cible of
+      Left batiment -> 
+        let newPointsVie= max 0 (bpointsVie batiment - degats)
+        in if newPointsVie == 0
+           then isMissingBat batiment result
+           else 
+            let batupdate = getBatiment (bid batiment) result
+                pointdeVie = bpointsVie batupdate
+            in pointdeVie == newPointsVie
+      Right unite ->
+        let newPointsVie= max 0 (upointsVie unite - degats)
+        in if newPointsVie == 0
+           then isMissingUnit unite result
+           else 
+            let uniteUpdate = getUnite (uid unite) result
+                pointdeVie = upointsVie uniteUpdate
+            in pointdeVie == newPointsVie
+
+
 -- Deplacer une unite
 modifCoordEO :: Unite -> Direction -> Unite
 modifCoordEO u dir =
@@ -170,6 +200,18 @@ deplacer unite env =
                     else Just (Deplacer nextCoord)
           newUnite = unite { ucoord = nextCoord, upath = remainingPath, ubut = nextBut}
       in updateUnite newUnite env
+
+--Post condition deplacer 
+prop_postdeplacer:: Coord -> Unite -> Environnement -> Bool
+prop_postdeplacer coord unite env =
+  let env'= deplacer coord unite env 
+  in 
+    let path = aStar env (ucoord unite) coord
+        coordInpath = head path
+        newUnite = M.lookup (uid unite) (unites env')
+        newCoord = head (upath (fromJust(newUnite)))
+    in coordInpath == newCoord
+
 
 
 calculatePath :: Coord -> Unite -> Environnement -> Environnement
@@ -213,6 +255,37 @@ collecterRessource unite env =
                Nothing -> env
         _ -> env -- No resource at the unit's position
     _ -> env -- The unit is not a collector
+
+--Precondition collecter ressources
+prop_preCollecte::Unite->Carte->Environnement->Bool
+prop_preCollecte unite carte env =
+  let isCollecteur= (utype unite)==Collecteur
+      hasRessource= (case getTerrain carte (ucoord unite) of
+                        Just (Ressource _) -> True
+                        _ -> False)
+      isnFull = not (isFull (fromJust(ucuve unite)))
+  in isCollecteur && hasRessource && isnFull
+-- Post condition collecter ressources
+prop_postCollecte:: Unite->Carte->Environnement->Bool
+prop_postCollecte unite carte env =
+  let env'= collecterRessource unite carte env
+  in case utype unite of
+      Collecteur ->
+        let cuve = fromJust (ucuve unite) in
+          case getTerrain carte (ucoord unite) of
+            Just (Ressource _) ->
+              let capaciteDisponible = capacite cuve - quantite cuve
+                  (q, carte') = collecteCase (ucoord unite) capaciteDisponible carte
+              in case (remplirCuve cuve q) of 
+                  Just cuve' ->
+                    let newUnite= M.lookup (uid unite) (unites env')
+                        newCUve = ucuve (fromJust(newUnite))
+                        isTRueCuve = fromJust(newCUve)== cuve'
+                        isTRueCarte = prop_postCollecteCase (ucoord unite) capaciteDisponible carte
+                    in isTRueCuve && isTRueCarte
+                  Nothing -> False
+            _ -> False
+      _ -> False 
 
 executeOrdreCollecte :: Unite -> Environnement -> Coord -> Environnement
 executeOrdreCollecte unite env targetCoord
