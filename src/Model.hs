@@ -23,6 +23,7 @@ data MenuItem = BuildBuilding BatimentType
               | CollectResources
               | Attack
               | Patrol
+              | Moveto
               deriving (Show, Eq)
 
 type Selected = Either EntiteId Terrain
@@ -34,6 +35,7 @@ data GameState = GameState
     , selected :: Maybe Selected
     , menuItems :: [MenuItem]
     , pendingAction :: Maybe MenuItem
+    , executor :: Maybe EntiteId
     ,remainingTurnTime :: Float
     }
   deriving (Show)
@@ -44,7 +46,9 @@ initGameState ienv = GameState
   , currentPlayer = Nothing
   , pendingCommand = Nothing
   , selected = Nothing
+  , menuItems = []
   , pendingAction = Nothing
+  , executor = Nothing
   , remainingTurnTime = 20
   }
 
@@ -64,7 +68,7 @@ gameStep gstate kbd prevMouseState mouseState deltaTime =
       gstate' = gstate { selected = selected', menuItems = menuItems'}
 
       -- Execute the pending action if the left button was just pressed and not in the menu area
-      gstate'' = if leftButton mouseState && not (leftButton prevMouseState) && not (clickedInMenu mouseState)
+      gstate2 = if leftButton mouseState && not (leftButton prevMouseState) && not (clickedInMenu mouseState)
                  then
                    case pendingAction gstate' of
                      Nothing -> gstate'
@@ -74,21 +78,21 @@ gameStep gstate kbd prevMouseState mouseState deltaTime =
                  else gstate'
 
       -- Add more logic here based on keyboard input
-
-      -- Move all the units
-      gstate2 = moveUnits gstate''
-
-      -- If the unit is on the raffinerie, convertResourcesToCredits
-      -- TODO: check the unit is on the raffinerie
-
       -- Update the remainingTurnTime and call debutTour if it's a new turn
       gstate3 = if isNewTurn
                 then gstate2 { envi = debutTour (envi gstate2), remainingTurnTime = remainingTurnTime'' }
                 else gstate2 { remainingTurnTime = remainingTurnTime'' }
+                
       -- Call terminerProductionForALL
       env' = terminerProductionForALL (envi gstate3)
-  in gstate3 { envi = env' }
 
+      -- Call tourDeJeu for unites
+      env'' = tourDeJeu env'
+
+      env2 = convertResourcesForALL env''
+      -- Update the environment
+      gstate4 = gstate3 { envi = env2 }
+  in Debug.trace("show batiments (envi gstate4" ++ show (batiments (envi gstate4))) $ gstate4
 
 
 
@@ -126,19 +130,6 @@ isEntityClicked x y ent =
       entityHeight = 32
   in x >= entX && x < entX + entityWidth && y >= entY && y < entY + entityHeight
 
-moveUnits :: GameState -> GameState
-moveUnits gstate =
-  let env = envi gstate
-      env' = M.foldr moveUnit env (unites env)
-  in gstate { envi = env' }
-
-moveUnit :: Unite -> Environnement -> Environnement
-moveUnit unite env =
-  case upath unite of
-    [] -> env
-    (nextCoord : remainingPath) ->
-      let newUnite = unite { ucoord = nextCoord, upath = remainingPath }
-      in updateUnite newUnite env
 
 -- Get the health of the entity with the given EntiteId
 getEntityHealth :: GameState -> EntiteId -> Int
@@ -174,8 +165,8 @@ getMenuItemsForEntity gameState entityId =
            _ -> [BuildBuilding batType | batType <- [ Raffinerie, Usine, Centrale]]
        Just (Right unit) ->
          case utype unit of
-           Collecteur  -> [CollectResources]
-           Combatant -> [Attack, Patrol]
+           Collecteur  -> [CollectResources,Moveto]
+           Combatant -> [Attack, Patrol,Moveto]
        Nothing -> []
 
 handleMenuClick :: GameState -> MouseState -> GameState
@@ -197,10 +188,10 @@ handleMapClick gameState mouseState =
   case pendingAction gameState of
     Nothing -> -- Handle the normal map click, e.g., selecting units or buildings
       let newSelected = selectedCase (mouseX mouseState) (mouseY mouseState) gameState
-      in gameState { selected = newSelected }
-    Just menuItem -> -- Handle the menu click by executing the action on the clicked map cell
-      let coord = screenCoordToMapCoord (mouseX mouseState, mouseY mouseState)
-      in Debug.trace "executeMenuItemAction will called in handleMapClick" $ executeMenuItemAction gameState menuItem coord
+          newExecutor = selectEntity (mouseX mouseState) (mouseY mouseState) gameState
+      in gameState { selected = newSelected , executor = newExecutor }
+    Just _ -> gameState -- Keep the pending action for the next game step
+
 
 getMenuItemAtClick :: GameState -> MouseState -> Maybe MenuItem
 getMenuItemAtClick gameState mouseState =
@@ -283,15 +274,42 @@ executeMenuItemAction gstate menuItem coord =
         _ -> gstate -- No building selected, do nothing
     CollectResources ->
       case selected gstate of
-        Just (Left entId) ->
-          case entId of 
-            Right uniteId -> case M.lookup uniteId (unites (envi gstate)) of
-                               Just unite -> let newEnv = executeOrdreCollecte unite (envi gstate) coord
-                                             in gstate { envi = newEnv, pendingAction = Nothing }
-                               Nothing -> gstate -- Selected entity is not a valid unite
-            _ -> gstate -- Selected entity is not a unite
-        _ -> gstate -- No unite selected, do nothing
-    Attack -> gstate { pendingAction = Just menuItem } -- Not implemented
+        Just (Right terrain) ->
+          case terrain of 
+            Ressource _ ->
+              Debug.trace "executeMenuItemAction CollectResources is called" $
+              case executor gstate of
+                Just (Right uniteId) -> 
+                  Debug.trace "executeMenuItemAction CollectResources is called" $
+                  case M.lookup uniteId (unites (envi gstate)) of
+                                  Just unite -> let newEnv = executeOrdreCollecte unite (envi gstate) coord
+                                                in gstate { envi = newEnv, pendingAction = Nothing }
+                                  Nothing -> gstate -- Selected entity is not a valid unite
+                _ -> gstate -- executor entity is not a unite
+            _ -> gstate -- No ressource selected, do nothing
+        _ -> gstate -- No terrain selected, do nothing
+    Moveto ->
+      Debug.trace "executeMenuItemAction Moveto is called" $
+      case executor gstate of
+        Just (Right uniteId) -> 
+          case M.lookup uniteId (unites (envi gstate)) of
+            Just unite -> 
+              let newEnv = calculatePath coord unite (envi gstate)
+              in gstate { envi = newEnv, pendingAction = Nothing }
+            Nothing -> gstate -- Selected entity is not a valid unite
+        _ -> gstate -- executor entity is not a unite
+    Attack ->
+      Debug.trace "executeMenuItemAction Attack is called" $
+      let maybeAttacker = do
+            (Right uniteId) <- executor gstate
+            findUniteById uniteId (envi gstate)
+          maybeTarget = do
+            (Left entId) <- selected gstate
+            findEntiteByID entId (envi gstate)
+          newEnv = attaque <$> maybeAttacker <*> maybeTarget <*> Just (envi gstate)
+      in case newEnv of
+           Just env' -> Debug.trace "Attack "gstate { envi = env', pendingAction = Nothing }
+           Nothing -> Debug.trace "Invalid Attack: Check if both executor and selected entity are valid." gstate
     Patrol -> gstate { pendingAction = Just menuItem } -- Not implemented
 
 

@@ -1,10 +1,11 @@
 module Carte where
 
 import qualified Data.Map.Strict as M
-import System.Random
-import Data.List (nub,minimumBy)
+import Data.List (nubBy,minimumBy)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
+import System.Random (StdGen, randomRs, randomR, split)
+import Control.Monad (replicateM)
 
 data Coord = C {cx :: Int, cy :: Int}
     deriving (Show, Eq)
@@ -121,56 +122,46 @@ dimension (Carte m) = let coords = Map.keys m
 generateRandomMap :: Int -> Int -> StdGen -> Carte
 generateRandomMap width height gen =
   let coords = [C x y | x <- [0..width - 1], y <- [0..height - 1]]
-      randomTerrains = randomRs (0, 2) gen :: [Int]
-      randomSizes = randomRs (30, 100) gen :: [Int]
-      terrainFromIntSize n size = case n of
+      initialMap = M.fromList [(coord, Herbe) | coord <- coords]
+
+      numberOfModifiedCoords = (width * height * 4) `div` 10
+
+      terrainFromInt n = case n of
         0 -> Herbe
-        1 -> Ressource size
+        1 -> Ressource 50
         _ -> Eau
-      terrainsWithSizes = zipWith terrainFromIntSize randomTerrains randomSizes
-  in Carte . M.fromList $ zip coords terrainsWithSizes
 
-generateInitialPlayerPositions :: Int -> Carte -> StdGen -> [Coord]
-generateInitialPlayerPositions numPlayers carte gen =
-  let (cols, rows) = dimension carte
-      minCoord = 2
-      maxCoordX = cols - 1 - minCoord
-      maxCoordY = rows - 1 - minCoord
-      edgePositions = [(x, y) | x <- [minCoord, maxCoordX], y <- [minCoord .. maxCoordY]] ++
-                      [(x, y) | x <- [minCoord .. maxCoordX], y <- [minCoord, maxCoordY]]
-      distanceThreshold = 2.0
-      maxAttempts = 1000
-      randomPositions = randomRs (0, length edgePositions - 1) gen
-      generateCoord pairs attempts remainingRandomPositions
-        | length pairs == numPlayers = pairs
-        | attempts <= 0 = error "Unable to generate initial player positions."
-        | null remainingRandomPositions = error "Ran out of random positions."
-        | otherwise =
-            let idx:rest = remainingRandomPositions
-                (x, y) = edgePositions !! idx
-                c = C x y
-            in if isConstructible c carte && isFarEnough distanceThreshold c pairs
-                  then generateCoord (c:pairs) (attempts - 1) rest
-                  else generateCoord pairs (attempts - 1) rest
-  in nub $ generateCoord [] maxAttempts randomPositions
+      genTerrain coord = let (terrainType, newGen) = randomR (0 :: Int, 2 :: Int) gen
+                         in (coord, terrainFromInt terrainType, newGen)
+
+      updateMapWithRandomTerrain m (coord, terrain, newGen) = (M.insert coord terrain m, newGen)
+
+      generateMapWithRandomTerrains m _ 0 _ = m
+      generateMapWithRandomTerrains m g remainingCoords usedCoords =
+        let (x, g1) = randomR (0, width - 1) g
+            (y, g2) = randomR (0, height - 1) g1
+            coord = C x y
+            (terrain, g3) = randomR (0 :: Int, 2 :: Int) g2
+        in if coord `elem` usedCoords
+             then generateMapWithRandomTerrains m g3 remainingCoords usedCoords
+             else generateMapWithRandomTerrains (M.insert coord (terrainFromInt terrain) m) g3 (remainingCoords - 1) (coord:usedCoords)
+
+      updatedMap = generateMapWithRandomTerrains initialMap gen numberOfModifiedCoords []
+
+      -- Ensure grass at the bottom-left and top-right corners
+      finalMap = M.insert (C 0 0) Herbe . M.insert (C (width - 1) (height - 1)) Herbe $ updatedMap
+  in Carte finalMap
 
 
-interleave :: [a] -> [a] -> [a]
-interleave (x:xs) (y:ys) = x : y : interleave xs ys
-interleave xs [] = xs
-interleave [] ys = ys
-
-
+generateInitialPlayerPositions :: Carte -> [Coord]
+generateInitialPlayerPositions carte = [C 0 0, C (cols - 1) (rows - 1)]
+  where (cols, rows) = dimension carte
 
 euclideanDistance :: Coord -> Coord -> Float
 euclideanDistance (C x1 y1) (C x2 y2) =
   let dx = fromIntegral (x1 - x2)
       dy = fromIntegral (y1 - y2)
   in sqrt (dx * dx + dy * dy)
-
-isFarEnough :: Float -> Coord -> [Coord] -> Bool
-isFarEnough threshold newCoord existingCoords =
-  all (\coord -> euclideanDistance newCoord coord > threshold) existingCoords
 
 findNearestGrass :: Coord -> Carte -> Maybe Coord
 findNearestGrass coord (Carte m) =

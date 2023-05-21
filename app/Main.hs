@@ -6,7 +6,7 @@ import Control.Monad (unless,forM_,foldM,when)
 
 import Foreign.C.Types (CInt (..) )
 
-import SDL
+import SDL hiding (windowSize)
 
 import qualified TextureMap as TM
 
@@ -77,34 +77,6 @@ loadUnite renderer  (tmap, smap) unite = do
   let smap' = SM.addSprite spriteId sprite smap
 
   return (tmap', smap')
-
-unloadEntites :: TextureMap -> SpriteMap -> Environnement -> Environnement -> IO (TextureMap, SpriteMap)
-unloadEntites tmap smap oldEnv newEnv = do
-  let oldUnitesList = Map.elems (unites oldEnv)
-      newUnitesList = Map.elems (unites newEnv)
-      oldBatimentsList = Map.elems (batiments oldEnv)
-      newBatimentsList = Map.elems (batiments newEnv)
-
-  let removedUnites = filter (`notElem` newUnitesList) oldUnitesList
-  let removedBatiments = filter (`notElem` newBatimentsList) oldBatimentsList
-
-  let smap' = foldr (SM.removeSprite . getSpriteIdForUnite) smap removedUnites
-  let smap'' = foldr (SM.removeSprite . getSpriteIdForBatiment) smap' removedBatiments
-
-  -- For now, we just return the original TextureMap without changes
-  return (tmap, smap'')
-  
-
-unloadEntite :: TextureMap -> SpriteMap -> Entite -> IO (TextureMap, SpriteMap)
-unloadEntite tmap smap entity = do
-  let spriteId = case entity of
-        Left batiment -> getSpriteIdForBatiment batiment
-        Right unite -> getSpriteIdForUnite unite
-
-  -- For now, we just return the original TextureMap without changes
-  let smap' = SM.removeSprite spriteId smap
-  return (tmap, smap')
-
 
 loadBatiment :: Renderer  -> (TextureMap, SpriteMap) -> Batiment -> IO (TextureMap, SpriteMap)
 loadBatiment renderer  (tmap, smap) batiment = do
@@ -199,7 +171,7 @@ appLoop renderer tmap smap gameState font kbd mouseState = do
     -- Update the TextureMap and SpriteMap if necessary
     (tmap', smap') <- updateTSMap renderer (tmap, smap) gameState gameState2
 
-    drawEnv renderer tmap' smap' gameState' font
+    drawEnv renderer tmap' smap' gameState2 font
     present renderer
     
     
@@ -232,8 +204,7 @@ main = do
   let smap = SM.createSpriteMap
   
   -- Generate initial player positions
-  let numPlayers = 2
-  let initialPositions = generateInitialPlayerPositions numPlayers myMap gen
+  let initialPositions = generateInitialPlayerPositions myMap
   --let initialPositions = [(C 5 5), (C 10 10), (C 20 20), (C 25 25)]
 
   -- Create an initial Environnement using creerEnvironnement
@@ -276,6 +247,7 @@ menuItemToText menuItem = case menuItem of
   CollectResources -> T.pack "Collect Resources"
   Attack -> T.pack "Attack"
   Patrol -> T.pack "Patrol"
+  Moveto -> T.pack "Moveto"
 
 drawEnv :: Renderer -> TextureMap -> SpriteMap -> GameState -> Font -> IO ()
 drawEnv renderer tmap smap gameState font = do
@@ -286,16 +258,18 @@ drawEnv renderer tmap smap gameState font = do
   -- Draw units
   forM_ (Map.elems (unites env)) $ \unite -> do
     let spriteId = getSpriteIdForUnite unite
-    let (screenPosX, screenPosY) = entiePos (Right unite) 
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
-    S.displaySprite renderer tmap sprite
+    when (Map.member spriteId smap) $ do
+      let (screenPosX, screenPosY) = entiePos (Right unite) 
+      let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
+      S.displaySprite renderer tmap sprite
 
   -- Draw buildings
   forM_ (Map.elems (batiments env)) $ \batiment -> do
     let spriteId = getSpriteIdForBatiment batiment
-    let (screenPosX, screenPosY) = entiePos (Left batiment) 
-    let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
-    S.displaySprite renderer tmap sprite
+    when (Map.member spriteId smap) $ do
+      let (screenPosX, screenPosY) = entiePos (Left batiment) 
+      let sprite = S.moveTo (SM.fetchSprite spriteId smap) (fromIntegral screenPosX) (fromIntegral screenPosY) -- Convert to CInt
+      S.displaySprite renderer tmap sprite
 
   drawInfoAndMenu renderer gameState font
 
@@ -308,10 +282,8 @@ updateTSMap renderer (tmap, smap) oldState newState = do
   let oldUnits = unites oldEnv
   let newUnits = unites newEnv
 
-  
   -- Check if a new building has been added
   let addedBuildings = Map.difference newBuildings oldBuildings
-  --putStrLn $ "Added buildings: " ++ show addedBuildings
   unless (Map.null addedBuildings) $ putStrLn "Loading new buildings..."
   (tmap', smap') <- foldM (\acc e -> loadBatiment renderer acc e) (tmap, smap) (Map.elems addedBuildings)
 
@@ -320,5 +292,18 @@ updateTSMap renderer (tmap, smap) oldState newState = do
   unless (Map.null addedUnits) $ putStrLn "Loading new units..."
   (tmap2, smap2) <- foldM (\acc e -> loadUnite renderer acc e) (tmap', smap') (Map.elems addedUnits)
 
-  return (tmap2, smap2)
+  -- Check if a building has been removed
+  let removedBuildings = Map.difference oldBuildings newBuildings
+  unless (Map.null removedBuildings) $ putStrLn "Removing buildings..."
+  tmap3 <- foldM (\acc e -> TM.destroyTexture (getTextureIdForBatiment e) acc) tmap2 (Map.elems removedBuildings)
+  let smap3 = foldl (\acc e -> removeSprite (getSpriteIdForBatiment e) acc) smap2 (Map.elems removedBuildings)
 
+  -- Check if a unit has been removed
+  let removedUnits = Map.difference oldUnits newUnits
+  unless (Map.null removedUnits) $ putStrLn "Removing units..."
+  tmap4 <- foldM (\acc e -> TM.destroyTexture (getTextureIdForUnite e) acc) tmap3 (Map.elems removedUnits)
+  let smap4 = foldl (\acc e -> removeSprite (getSpriteIdForUnite e) acc) smap3 (Map.elems removedUnits)
+
+  putStrLn "New sprite ids:"
+  mapM_ (putStrLn . show) (Map.keys smap4)
+  return (tmap4, smap4) 

@@ -13,13 +13,13 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/package.yaml:
   hash: 74b897980e38bdc5a6e2d062ccc55d1a1ba850001c0a51ed92609b741323fc80
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Batiment.hs:
-  hash: f95920f5810eb2cfa089f491485308f3edf8c8afcac3a03d3cabea0cd3a5c79e
+  hash: 0c7e5161fa02a8a39fd9bbb75718955ed9b6ebfe646aaf4eb323dc30608d0ac6
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Carte.hs:
-  hash: ecc2caa0217d5c15745ba03f17e17fc7d99aac9aa1a7071323f6dd9899cee39d
+  hash: 427c9f79bb452ba28f5dca61d1cdeb9276fc09f5058fd9c968c8ae809da69538
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Common.hs:
-  hash: bfe05e503ba16273dc05b6e545e130f6388758b392324440ede260a4dd7c6b9f
+  hash: 2a6aa90f6114ecb907035279de6cd66f194133fb1f65b0cab470ffa0d103e223
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Environnement.hs:
-  hash: f0edd6b2b004fd0f281c5e95673440067a351928be8962ad2e6d9ccfa40a4aea
+  hash: 9980a6de5cfe29d86148818a29b4ac45a77bb97f1216d38f90d900adcc474ff0
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Joueur.hs:
   hash: e499e5959649b5fd94df25abe76462af5495df3a10a35688fc8c8dc86d2d6a98
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Keyboard.hs:
@@ -27,9 +27,9 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Lib.hs:
   hash: 11d6d255cb397fa45980eb516ea685146565d9de2108c4eea356ea41db8364be
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Model.hs:
-  hash: 5d3198ab79edd029b28d3f0c6c5c103dc8404fcf13254b74bf4eae5cdbd9a047
+  hash: c65696fa293b9e96126b808cb6a3a081ef60d569cfefd7740f0df327ba6528f6
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Path.hs:
-  hash: 870b36e5f633e53fb6c710e58b720b223b489ad207e11964eda004959d218b9f
+  hash: f9089cd94bb38b2e071021d0470157092f1ff503458b01a7b7e280c404283fec
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Sprite.hs:
   hash: 9250967a28e63e2beb8653d37dda7fc3e54b930a004051d2bf40432514fae170
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/SpriteMap.hs:
@@ -37,4 +37,4 @@
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/TextureMap.hs:
   hash: 27426727347fd68ee3411986f464169f057de7954f360785078ef1abc648829b
 /Users/shuhan/Sorbonne/S2/PAF/dune2/src/Unite.hs:
-  hash: 42fd8ac5636b22b2e65f8f9c4fd15e5ab8e3573b77098b396ccf7ffca4930bba
+  hash: 12d74296dafae53b99f5abf9dd770f7f80d8fc6e462b1021e90ea3f62324d7fa

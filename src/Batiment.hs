@@ -23,10 +23,10 @@ batimentTypeCost Centrale = 100
 
 -- Returns the maximum number of hit points for a given building type.
 batimentTypePointsVie :: BatimentType -> Int
-batimentTypePointsVie QuartierGeneral = 500
-batimentTypePointsVie Raffinerie = 100
-batimentTypePointsVie Usine = 200
-batimentTypePointsVie Centrale = 150
+batimentTypePointsVie QuartierGeneral = 100
+batimentTypePointsVie Raffinerie = 20
+batimentTypePointsVie Usine = 80
+batimentTypePointsVie Centrale = 60
 
 -- Returns the energy production or consumption (in units) of a given building type.
 batimentTypeEnergie :: BatimentType -> Int
@@ -124,27 +124,6 @@ creerEnvironnement carte qgCoords =
            initialEnv (zip initialJoueurs qgCoords)
   in Debug.trace ("Initial batiments: " ++ show (batiments updatedEnv)) updatedEnv
 
-
--- executerCommande :: Commande -> Environnement -> Environnement
--- executerCommande cmd env =
---   case cmd of
---     DonnerOrdre uid ordre -> -- Update the unit with the new order
---       let unite = M.lookup uid (unites env)
---       in case unite of
---         Just u -> updateUnite (u {uordres = ordre : uordres u}) env
---         Nothing -> env
---     Construire jid btype coord -> -- Build a new building at the specified coordinates
---       let joueur = findJoueur jid (joueurs env)
---       in case joueur of
---         Just j -> construireBatiment j env btype coord
---         Nothing -> env
---     Produire jid utype -> -- Produce a new unit
---       let joueur = findJoueur jid (joueurs env)
---           usine = findUsineForJoueur joueur (batiments env)
---       in case usine of
---         Just u -> produireUnite env utype u
---         Nothing -> env
-
 -- Calculate the total energy production and consumption of the player's building
 energieTotal :: Joueur -> Int
 energieTotal joueur = sum (Prelude.map benergie (M.elems (jbatiments joueur)))
@@ -168,12 +147,47 @@ updateEtatBatimentsForALL env =
   let joueursMisAJour = Prelude.map updateEtatBatiments (joueurs env)
   in env { joueurs = joueursMisAJour }
 
+-- Update a single raffinerie
+convertResourcesAtRaffinerie :: Batiment -> Environnement -> Environnement
+convertResourcesAtRaffinerie raffinerie env
+  | btype raffinerie /= Raffinerie = env -- If the building is not a raffinerie, do nothing
+  | otherwise =
+    let maybeCollector = findUniteAtCoord (bcoord raffinerie) env
+    in case maybeCollector of
+      Just unite
+        | utype unite == Collecteur -> -- If there is a collector at the raffinerie's coordinates
+          let cuve = fromJust (ucuve unite)
+              credits = quantite cuve -- Convert the resources to credits
+              newCollector = unite { ucuve = Just (Tank (capacite cuve) 0), ubut = Nothing } -- Empty the cuve and move the collector
+              env' = moveCollectorToAdjacentCell newCollector env (bcoord raffinerie)
+              joueur = fromJust (findJoueur (bproprio raffinerie) (joueurs env'))
+              newJoueur = joueur { jcredits = jcredits joueur + credits }
+          in Debug.trace "convertResourcesAtRaffinerie" $ updateJoueur newJoueur env'
+        | otherwise -> env -- If the unit at the raffinerie's coordinates is not a collector, do nothing
+      Nothing -> env -- If there is no unit at the raffinerie's coordinates, do nothing
+
+-- Move a collector unit to an adjacent cell
+moveCollectorToAdjacentCell :: Unite -> Environnement -> Coord -> Environnement
+moveCollectorToAdjacentCell unite env coord =
+  let newCoord = fromJust (findNearestGrass coord (ecarte env)) -- Find the nearest grass cell to the building
+      newUnit = unite { ucoord = newCoord }
+      env' = updateUnite newUnit env
+  in Debug.trace "moveCollectorToAdjacentCell" env'
+
+
+-- Convert the resources in the collectors present at the raffineries' coordinates
+convertResourcesForALL :: Environnement -> Environnement
+convertResourcesForALL env =
+  let raffineries = M.elems $ M.filter (\b -> btype b == Raffinerie) (batiments env)
+  in Prelude.foldl (\accEnv raffinerie -> convertResourcesAtRaffinerie raffinerie accEnv) env raffineries
+
 -- Update the player's building status at the start of each turn
 debutTour :: Environnement -> Environnement
 debutTour env =
   let env' = updateEtatBatimentsForALL env
       env'' = terminerProductionForALL env'
-  in Debug.trace "debutTour" $ env''
+      env2 = convertResourcesForALL env''
+  in Debug.trace "debutTour" $ env2
 
 -- End production of units for all players
 terminerProductionForALL :: Environnement -> Environnement

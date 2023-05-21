@@ -2,6 +2,7 @@
 module Common where
 import Data.Map
 import Carte
+import qualified Data.Map as Map
 
 
 newtype JoueurId = JoueurId Int deriving (Show, Eq ,Ord)
@@ -86,7 +87,7 @@ data Unite = Unite {
     upointsVie :: Int,
     ucuve :: Maybe Tank,
     uordres :: [Ordre],
-    ubut :: Ordre
+    ubut :: Maybe Ordre
 } deriving (Show, Eq)
 
 getFilePathForUnite :: UniteType -> String
@@ -117,4 +118,13 @@ findJoueur id' (j:js)
   | jid j == id' = Just j
   | otherwise = findJoueur id' js
 
+findUniteById :: UniteId -> Environnement -> Maybe Unite
+findUniteById uid env = Map.lookup uid (unites env)
+
+findBatimentByID :: BatId -> Environnement -> Maybe Batiment
+findBatimentByID bid env = Map.lookup bid (batiments env)
+
+findEntiteByID :: EntiteId -> Environnement -> Maybe Entite
+findEntiteByID (Right uid) env = fmap Right (findUniteById uid env)
+findEntiteByID (Left bid) env = fmap Left (findBatimentByID bid env)
 

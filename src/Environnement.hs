@@ -5,6 +5,8 @@ import Carte
 import qualified Data.Map as M
 import Joueur
 import qualified Data.List
+import qualified Debug.Trace as Debug
+import Data.List (find,foldl')
 
 prop_Entites_correctes :: Environnement -> Bool
 prop_Entites_correctes env =
@@ -62,36 +64,40 @@ envInvariant env = prop_Entites_correctes env
 updateJoueur :: Joueur -> Environnement -> Environnement
 updateJoueur newj env =
   let newjs = map (\j -> if jid j == jid newj then newj else j) (joueurs env)
-  in env { joueurs = newjs } 
+  in 
+    Debug.trace ("updateJoueur is called, : " ++ show (batiments env)) $
+    env { joueurs = newjs } 
 
 -- update the environment with new batiment
 updateBatiment :: Batiment -> Environnement -> Environnement
 updateBatiment updatedBatiment env =
-  let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
-      updatedBatiments = M.insert (bid updatedBatiment) updatedBatiment (jbatiments currentPlayer)
-      updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
-      updatedGlobalBatiments = M.insert (bid updatedBatiment) updatedBatiment (batiments env)
-  in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments })
+    Debug.trace ("after attaqueBatiment, batiment: " ++ show updatedBatiment)$
+    let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio updatedBatiment) (joueurs env)
+        updatedBatiments = M.insert (bid updatedBatiment) updatedBatiment (jbatiments currentPlayer)
+        updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
+        updatedGlobalBatiments = M.insert (bid updatedBatiment) updatedBatiment (batiments env)
+    in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments })
 
--- détruit un bâtiment et supprime ses coordonnées de la carte
 detruireBatiment :: Environnement -> Batiment -> Environnement
 detruireBatiment env bat =
-    let updatedBatiments = M.delete (bid bat) (batiments env)
-        updatedCarte = setCaseVide (bcoord bat) (ecarte env)
-        currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio bat) (joueurs env)
-        updatedPlayerBatiments = M.delete (bid bat) (jbatiments currentPlayer)
-        updatedPlayer = currentPlayer { jbatiments = updatedPlayerBatiments }
-        updatedEnv = env { batiments = updatedBatiments, ecarte = updatedCarte }
-    in updateJoueur updatedPlayer updatedEnv
+    Debug.trace ("after attaqueBatiment, batiment will destroyed " ++ show bat) $
+    let currentPlayer = Data.List.head $ Data.List.filter (\j -> jid j == bproprio bat) (joueurs env)
+        updatedBatiments = M.delete (bid bat) (jbatiments currentPlayer)
+        updatedPlayer = currentPlayer { jbatiments = updatedBatiments }
+        updatedGlobalBatiments = M.delete (bid bat) (batiments env)
+        updatedMap = setCaseVide (bcoord bat) (ecarte env)
+    in updateJoueur updatedPlayer (env { batiments = updatedGlobalBatiments ,ecarte = updatedMap })
 
--- update the environment with new unite
 updateUnite :: Unite -> Environnement -> Environnement
 updateUnite updatedUnite env =
   let currentPlayer = head $ filter (\j -> jid j == uproprio updatedUnite) (joueurs env)
       updatedUnites = M.insert (uid updatedUnite) updatedUnite (junites currentPlayer)
       updatedPlayer = currentPlayer { junites = updatedUnites }
       updatedGlobalUnites = M.insert (uid updatedUnite) updatedUnite (unites env)
-  in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
+      updatedJoueurs = map (\j -> if jid j == uproprio updatedUnite then updatedPlayer else j) (joueurs env)
+  in
+     Debug.trace ("updateUnite is called, updatedUnite: " ++ show updatedUnite) $
+     updateJoueur updatedPlayer (env { unites = updatedGlobalUnites, joueurs = updatedJoueurs })
 
 
 removeUnite :: Unite -> Environnement -> Environnement
@@ -102,21 +108,21 @@ removeUnite unite env =
       updatedGlobalUnites = M.delete (uid unite) (unites env)
   in updateJoueur updatedPlayer (env { unites = updatedGlobalUnites })
 
-getUnite::UniteId->Environnement->Unite
+getUnite::UniteId -> Environnement -> Unite
 getUnite u env =
     let unite = M.lookup u (unites env)
     in case unite of
         Just unite'-> unite'
         Nothing -> error "undifined"
 
-getBatiment:: BatId->Environnement->Batiment
+getBatiment:: BatId -> Environnement -> Batiment
 getBatiment b env=
     let batiment = M.lookup b (batiments env)
     in case batiment of
         Just batiment'-> batiment'
         Nothing -> error "undifined"
 
-isMissingBat::Batiment->Environnement->Bool
+isMissingBat::Batiment -> Environnement -> Bool
 isMissingBat batiment env =
   let verif = M.lookup (bid batiment) (batiments env)
   in case verif of 
@@ -129,9 +135,3 @@ isMissingUnit unite env =
    in case verif of 
       Just _ -> True
       Nothing -> False
-
-
-
-
-
-
