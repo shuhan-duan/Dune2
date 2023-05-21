@@ -204,9 +204,9 @@ deplacer unite env =
 --Post condition deplacer 
 prop_postdeplacer:: Coord -> Unite -> Environnement -> Bool
 prop_postdeplacer coord unite env =
-  let env'= deplacer coord unite env 
+  let env'= deplacer unite env 
   in 
-    let path = aStar env (ucoord unite) coord
+    let path = bfs env (ucoord unite) coord
         coordInpath = head path
         newUnite = M.lookup (uid unite) (unites env')
         newCoord = head (upath (fromJust(newUnite)))
@@ -265,10 +265,11 @@ prop_preCollecte unite carte env =
                         _ -> False)
       isnFull = not (isFull (fromJust(ucuve unite)))
   in isCollecteur && hasRessource && isnFull
+
 -- Post condition collecter ressources
 prop_postCollecte:: Unite->Carte->Environnement->Bool
 prop_postCollecte unite carte env =
-  let env'= collecterRessource unite carte env
+  let env'= collecterRessource unite env
   in case utype unite of
       Collecteur ->
         let cuve = fromJust (ucuve unite) in

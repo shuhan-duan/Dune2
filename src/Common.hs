@@ -98,7 +98,7 @@ getFilePathForBatiment :: BatimentType -> String
 getFilePathForBatiment QuartierGeneral = "assets/qurtierGeneral.bmp"
 getFilePathForBatiment Raffinerie = "assets/raffinerie.bmp"
 getFilePathForBatiment Usine = "assets/usine.bmp"
-getFilePathForBatiment Centrale = "assets/qurtierGeneral.bmp"
+getFilePathForBatiment Centrale = "assets/centrale.bmp"
 
 data Environnement = Environnement{
                 joueurs :: [Joueur],

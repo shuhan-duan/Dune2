@@ -95,7 +95,7 @@ produireUnite env utype bat  =
             where j = joueurProprioBatiment env bat
          _ -> env -- Le bâtiment n'est pas de type "Usine", on ne peut pas effectuer de production d'unité
 
-- Pre-condition produireUnite
+-- Pre-condition produireUnite
 prop_pre_produireUnite::Environnement->UniteType->Batiment->Bool
 prop_pre_produireUnite env utype bat =
   let batType = (btype bat) == Usine
@@ -163,7 +163,7 @@ prop_postTerminerProd j env bat =
   in case btype bat of
       Usine -> 
         let (t,utype) = fromJust(btempsProd bat)
-            constUnit= creerUnite utype j (bcoord bat)
+            constUnit= creerUnite utype j (bcoord bat) env
             newUnit = M.lookup (uid constUnit) (unites env')
             newBat = M.lookup (bid bat) (batiments env')
         in ((uid constUnit) == (uid (fromJust(newUnit)))) && (btempsProd (fromJust(newBat)) == Nothing)
